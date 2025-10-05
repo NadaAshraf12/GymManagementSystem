@@ -1,0 +1,61 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<!-- Hero Banner -->
+<div class="hero-banner position-relative text-white text-center">
+    <img src="/uploads/1.jpg" class="img-fluid w-100" alt="Gym Training Banner" style="height: 500px; object-fit: cover; filter: brightness(60%);" />
+
+    <div class="position-absolute top-50 start-50 translate-middle">
+        <h1 class="display-4 fw-bold">Unleash Your Power</h1>
+        <p class="lead">Get fit, stay strong, and achieve your dream body with us.</p>
+        @* <a href="/Auth/Register" class="btn btn-primary btn-lg me-2">Join Now</a>
+        <a href="/Auth/Login" class="btn btn-light btn-lg">Login</a> *@
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container my-5">
+    <div class="row text-center">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-lg border-0 h-100">
+                <div class="card-body">
+                    <i class="fas fa-dumbbell fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Modern Equipment</h5>
+                    <p class="card-text">State-of-the-art machines and free weights for every workout style.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-lg border-0 h-100">
+                <div class="card-body">
+                    <i class="fas fa-users fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Expert Trainers</h5>
+                    <p class="card-text">Certified trainers to guide you with tailored programs.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-lg border-0 h-100">
+                <div class="card-body">
+                    <i class="fas fa-heartbeat fa-3x text-danger mb-3"></i>
+                    <h5 class="card-title">Healthy Lifestyle</h5>
+                    <p class="card-text">Join classes, track your progress, and improve your health.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call to Action -->
+<div class="bg-primary text-white text-center py-5">
+    <h2 class="mb-3">Ready to Start Your Fitness Journey?</h2>
+    <a href="/Auth/Register" class="btn btn-light btn-lg">Join Us Today</a>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-light text-center py-3 mt-5">
+    <p>&copy; @DateTime.Now.Year - Gym Management System | All Rights Reserved</p>
+</footer>

@@ -1,0 +1,17 @@
+﻿using Microsoft.AspNetCore.Identity;
+
+namespace GymManagementSystem.Domain.Entities
+{
+    public class ApplicationUser : IdentityUser
+    {
+        // Common properties for ALL users
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string? ProfilePicture { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsActive { get; set; } = true;
+
+        // Navigation Properties
+        public virtual ICollection<IdentityUserRole<string>> UserRoles { get; set; } = new List<IdentityUserRole<string>>();
+    }
+}

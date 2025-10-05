@@ -1,0 +1,72 @@
+using GymManagementSystem.Application.Interfaces;
+using GymManagementSystem.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace GymManagementSystem.WebUI.Controllers;
+
+[Authorize(Roles = "Admin")]
+public class AdminController : BaseController
+{
+    private readonly IApplicationDbContext _context;
+
+    public AdminController(IApplicationDbContext context, UserManager<ApplicationUser> userManager) : base(userManager)
+    {
+        _context = context;
+    }
+
+    // GET: /Admin/LoginAudits
+    public async Task<IActionResult> LoginAudits(int page = 1, int pageSize = 20)
+    {
+        var query = _context.LoginAudits
+            .Include(la => la.User)
+            .OrderByDescending(la => la.LoginTime);
+
+        var totalCount = await query.CountAsync();
+        var loginAudits = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(la => new
+            {
+                la.Id,
+                la.Email,
+                UserName = la.User != null ? $"{la.User.FirstName} {la.User.LastName}" : "Unknown",
+                la.IpAddress,
+                la.LoginTime,
+                la.LogoutTime,
+                la.IsSuccessful,
+                la.FailureReason
+            })
+            .ToListAsync();
+
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        ViewBag.TotalCount = totalCount;
+
+        return View(loginAudits);
+    }
+
+    // GET: /Admin/ActiveSessions
+    public async Task<IActionResult> ActiveSessions()
+    {
+        var activeSessions = await _context.LoginAudits
+            .Include(la => la.User)
+            .Where(la => la.IsSuccessful && la.LogoutTime == null)
+            .OrderByDescending(la => la.LoginTime)
+            .Select(la => new
+            {
+                la.Id,
+                la.Email,
+                UserName = la.User != null ? $"{la.User.FirstName} {la.User.LastName}" : "Unknown",
+                la.IpAddress,
+                la.UserAgent,
+                la.LoginTime,
+                Duration = DateTime.UtcNow - la.LoginTime
+            })
+            .ToListAsync();
+
+        return View(activeSessions);
+    }
+}

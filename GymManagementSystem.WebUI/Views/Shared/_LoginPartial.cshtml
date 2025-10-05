@@ -1,0 +1,58 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using GymManagementSystem.Domain.Entities
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<ul class="navbar-nav">
+    <!-- Debug info -->
+    @* <li class="nav-item">
+        <small class="text-muted">
+            Auth: @(User.Identity?.IsAuthenticated), Name: @User.Identity?.Name
+        </small>
+    </li> *@
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle text-light" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                @{
+                    var profilePicture = ViewBag.ProfilePicture as string;
+                }
+                @if (!string.IsNullOrEmpty(profilePicture))
+                {
+                    <img src="~/uploads/profiles/@profilePicture" alt="Profile" class="navbar-profile-picture me-2">
+                }
+                else
+                {
+                    <i class="fas fa-user-circle me-2"></i>
+                }
+                @User.Identity.Name
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index"><i class="fas fa-user"></i> Profile</a></li>
+                <li><a class="dropdown-item" asp-controller="Auth" asp-action="ChangePassword"><i class="fas fa-key"></i> Change Password</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link text-light" asp-controller="Auth" asp-action="Login">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-light" asp-controller="Auth" asp-action="Register">
+                <i class="fas fa-user-plus"></i> Register
+            </a>
+        </li>
+    }
+</ul>
