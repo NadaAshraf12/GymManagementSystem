@@ -52,7 +52,13 @@
                                     <i class="fas fa-users"></i> Members
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-area="" asp-controller="AdminTrainers" asp-action="Index">
+                                    <i class="fas fa-user-tie"></i> Trainers
+                                </a>
+                            </li>
                         }
+
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item dropdown">
@@ -66,7 +72,32 @@
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="ActiveSessions">
                                         <i class="fas fa-users"></i> Active Sessions
                                     </a></li>
+                                    
                                 </ul>
+                            </li>
+                        }
+                        @if (User.IsInRole("Trainer"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="trainerDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-dumbbell"></i> Trainer
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="trainerDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Trainer" asp-action="MyMembers">
+                                        <i class="fas fa-user-friends"></i> My Members
+                                    </a></li>
+                                    <li><a class="dropdown-item" asp-controller="TrainerSessions" asp-action="Index">
+                                        <i class="fas fa-calendar-alt"></i> My Sessions
+                                    </a></li>
+                                </ul>
+                            </li>
+                        }
+                        @if (User.IsInRole("Member"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-controller="Member" asp-action="MyPlans">
+                                    <i class="fas fa-list"></i> My Plans
+                                </a>
                             </li>
                         }
                         <li class="nav-item">

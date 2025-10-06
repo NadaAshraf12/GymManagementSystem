@@ -13,6 +13,11 @@ public static class DependencyInjection
         // Register Services
         services.AddScoped<IMemberService, MemberService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<IAttendanceService, AttendanceService>();
+        services.AddScoped<ITrainerAssignmentService, TrainerAssignmentService>();
+        services.AddScoped<ITrainingPlanService, TrainingPlanService>();
+        services.AddScoped<INutritionPlanService, NutritionPlanService>();
 
         services.Configure<JwtSettings>(options =>
         {

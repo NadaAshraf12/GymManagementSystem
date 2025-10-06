@@ -1,0 +1,46 @@
+@{
+    ViewData["Title"] = "Assign Trainer";
+}
+
+<h2>Assign Trainer to Member</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-action="AssignTrainer" method="post" class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label">Trainer</label>
+        <select name="trainerId" class="form-select">
+            <option value="">-- Select Trainer --</option>
+            @foreach (var t in (IEnumerable<GymManagementSystem.Domain.Entities.Trainer>)ViewBag.Trainers)
+            {
+                <option value="@t.Id">@t.FirstName @t.LastName</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Member</label>
+        <select name="memberId" class="form-select">
+            <option value="">-- Select Member --</option>
+            @foreach (var m in (IEnumerable<GymManagementSystem.Domain.Entities.Member>)ViewBag.Members)
+            {
+                <option value="@m.Id">@m.MemberCode - @m.FirstName @m.LastName</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Notes</label>
+        <input name="notes" class="form-control" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Assign</button>
+    </div>
+</form>
+
+

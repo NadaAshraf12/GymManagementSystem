@@ -1,0 +1,30 @@
+@model List<GymManagementSystem.Domain.Entities.TrainerMemberAssignment>
+@{
+    var trainer = ViewBag.Trainer as GymManagementSystem.Domain.Entities.Trainer;
+    ViewData["Title"] = "Assignments";
+}
+<h2>Assignments for @trainer?.FirstName @trainer?.LastName</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Member Code</th>
+            <th>Member Name</th>
+            <th>Assigned At</th>
+            <th>Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var a in Model)
+    {
+        <tr>
+            <td>@a.Member.MemberCode</td>
+            <td>@a.Member.FirstName @a.Member.LastName</td>
+            <td>@a.AssignedAt.ToString("yyyy-MM-dd HH:mm")</td>
+            <td>@a.Notes</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+

@@ -19,6 +19,8 @@ namespace GymManagementSystem.Application.Interfaces
         DbSet<MemberSession> MemberSessions { get; }
         DbSet<TrainingPlan> TrainingPlans { get; }
         DbSet<TrainingPlanItem> TrainingPlanItems { get; }
+        DbSet<NutritionPlan> NutritionPlans { get; }
+        DbSet<NutritionPlanItem> NutritionPlanItems { get; }
         DbSet<TrainerMemberAssignment> TrainerMemberAssignments { get; }
         DbSet<LoginAudit> LoginAudits { get; }
         DbSet<RefreshToken> RefreshTokens { get; }

@@ -27,6 +27,8 @@ namespace GymManagementSystem.Infrastructure.Data
         public DbSet<MemberSession> MemberSessions { get; set; }
         public DbSet<TrainingPlan> TrainingPlans { get; set; }
         public DbSet<TrainingPlanItem> TrainingPlanItems { get; set; }
+        public DbSet<NutritionPlan> NutritionPlans { get; set; }
+        public DbSet<NutritionPlanItem> NutritionPlanItems { get; set; }
         public DbSet<TrainerMemberAssignment> TrainerMemberAssignments { get; set; }
         public DbSet<LoginAudit> LoginAudits { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
@@ -156,6 +158,30 @@ namespace GymManagementSystem.Infrastructure.Data
                 entity.HasOne(i => i.TrainingPlan)
                     .WithMany(tp => tp.Items)
                     .HasForeignKey(i => i.TrainingPlanId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // NutritionPlan Configuration
+            builder.Entity<NutritionPlan>(entity =>
+            {
+                entity.Property(np => np.Title).IsRequired().HasMaxLength(200);
+                entity.HasOne(np => np.Member)
+                    .WithMany()
+                    .HasForeignKey(np => np.MemberId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(np => np.Trainer)
+                    .WithMany()
+                    .HasForeignKey(np => np.TrainerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<NutritionPlanItem>(entity =>
+            {
+                entity.Property(i => i.MealType).IsRequired().HasMaxLength(100);
+                entity.Property(i => i.FoodDescription).IsRequired().HasMaxLength(500);
+                entity.HasOne(i => i.NutritionPlan)
+                    .WithMany(np => np.Items)
+                    .HasForeignKey(i => i.NutritionPlanId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

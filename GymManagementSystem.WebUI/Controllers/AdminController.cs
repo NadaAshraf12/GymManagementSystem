@@ -11,10 +11,12 @@ namespace GymManagementSystem.WebUI.Controllers;
 public class AdminController : BaseController
 {
     private readonly IApplicationDbContext _context;
+    private readonly ITrainerAssignmentService _assignmentService;
 
-    public AdminController(IApplicationDbContext context, UserManager<ApplicationUser> userManager) : base(userManager)
+    public AdminController(IApplicationDbContext context, UserManager<ApplicationUser> userManager, ITrainerAssignmentService assignmentService) : base(userManager)
     {
         _context = context;
+        _assignmentService = assignmentService;
     }
 
     // GET: /Admin/LoginAudits
@@ -68,5 +70,35 @@ public class AdminController : BaseController
             .ToListAsync();
 
         return View(activeSessions);
+    }
+
+    // GET: /Admin/AssignTrainer
+    public async Task<IActionResult> AssignTrainer()
+    {
+        var trainers = await _context.Trainers.OrderBy(t => t.FirstName).ThenBy(t => t.LastName).ToListAsync();
+        var members = await _context.Members.OrderBy(m => m.FirstName).ThenBy(m => m.LastName).ToListAsync();
+        ViewBag.Trainers = trainers;
+        ViewBag.Members = members;
+        return View();
+    }
+
+    // POST: /Admin/AssignTrainer
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignTrainer(string trainerId, string memberId, string? notes)
+    {
+        if (string.IsNullOrWhiteSpace(trainerId) || string.IsNullOrWhiteSpace(memberId))
+        {
+            TempData["Error"] = "Please select both trainer and member.";
+            return RedirectToAction(nameof(AssignTrainer));
+        }
+        await _assignmentService.AssignAsync(new Application.DTOs.AssignTrainerDto
+        {
+            TrainerId = trainerId,
+            MemberId = memberId,
+            Notes = notes
+        });
+        TempData["Success"] = "Trainer assigned to member successfully.";
+        return RedirectToAction(nameof(AssignTrainer));
     }
 }
