@@ -52,6 +52,55 @@ public static class DbSeeder
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
         }
+
+        // Optionally seed a demo trainer and member for quick start
+        const string trainerEmail = "trainer@gmail.com";
+        var trainer = await userManager.FindByEmailAsync(trainerEmail) as Trainer;
+        if (trainer == null)
+        {
+            trainer = new Trainer
+            {
+                UserName = trainerEmail,
+                Email = trainerEmail,
+                FirstName = "Demo",
+                LastName = "Trainer",
+                Specialty = "General Fitness",
+                Certification = "CPT",
+                Experience = "3 years",
+                IsActive = true,
+                HireDate = DateTime.UtcNow
+            };
+            var created = await userManager.CreateAsync(trainer, "Trainer@123");
+            if (created.Succeeded)
+            {
+                await userManager.AddToRoleAsync(trainer, "Trainer");
+            }
+        }
+
+        const string memberEmail = "member@gmail.com";
+        var member = await userManager.FindByEmailAsync(memberEmail) as Member;
+        if (member == null)
+        {
+            member = new Member
+            {
+                UserName = memberEmail,
+                Email = memberEmail,
+                FirstName = "Demo",
+                LastName = "Member",
+                MemberCode = "M0001",
+                Gender = "M",
+                Address = "",
+                EmergencyContact = "",
+                MedicalConditions = "",
+                IsActive = true,
+                JoinDate = DateTime.UtcNow
+            };
+            var created = await userManager.CreateAsync(member, "Member@123");
+            if (created.Succeeded)
+            {
+                await userManager.AddToRoleAsync(member, "Member");
+            }
+        }
     }
 }
 

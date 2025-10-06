@@ -1,0 +1,35 @@
+@model List<GymManagementSystem.WebUI.Models.TrainerMemberListItem>
+@{
+    ViewData["Title"] = "My Members";
+}
+<h2>My Members</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Member Code</th>
+            <th>Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var m in Model)
+    {
+        <tr>
+            <td>@m.MemberCode</td>
+            <td>@m.Name</td>
+            <td>
+                <a class="btn btn-sm btn-primary" href="@Url.Action("CreateTrainingPlan", "Trainer", new { memberId = m.MemberId })">Create Training Plan</a>
+                <a class="btn btn-sm btn-success" href="@Url.Action("CreateNutritionPlan", "Trainer", new { memberId = m.MemberId })">Create Nutrition Plan</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+    </table>
+
+

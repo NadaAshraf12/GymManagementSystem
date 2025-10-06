@@ -1,0 +1,110 @@
+@{
+    ViewData["Title"] = "My Plans";
+    var assignment = ViewBag.Assignment as GymManagementSystem.Domain.Entities.TrainerMemberAssignment;
+    var training = ViewBag.TrainingPlan as GymManagementSystem.Domain.Entities.TrainingPlan;
+    var nutrition = ViewBag.NutritionPlan as GymManagementSystem.Domain.Entities.NutritionPlan;
+    var upcoming = ViewBag.Upcoming as List<GymManagementSystem.Domain.Entities.MemberSession>;
+    var trainerUpcoming = ViewBag.TrainerUpcoming as List<GymManagementSystem.Domain.Entities.WorkoutSession>;
+}
+
+<h2>My Plans</h2>
+
+<div class="row g-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Assigned Trainer</h5>
+                @if (assignment?.Trainer != null)
+                {
+                    <p>@assignment.Trainer.FirstName @assignment.Trainer.LastName (@assignment.Trainer.Specialty)</p>
+                }
+                else
+                {
+                    <p>No trainer assigned yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Latest Training Plan</h5>
+                @if (training != null)
+                {
+                    <p><strong>@training.Title</strong> - @training.CreatedAt.ToString("yyyy-MM-dd")</p>
+                    <ul>
+                        @foreach (var i in (training.Items ?? new List<GymManagementSystem.Domain.Entities.TrainingPlanItem>()).OrderBy(x => x.DayOfWeek))
+                        {
+                            <li><strong>@i.DayOfWeek</strong>: @i.ExerciseName (@i.Sets x @i.Reps) @i.Notes</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p>No training plan yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Latest Nutrition Plan</h5>
+                @if (nutrition != null)
+                {
+                    <p><strong>@nutrition.Title</strong> - @nutrition.CreatedAt.ToString("yyyy-MM-dd")</p>
+                    <ul>
+                        @foreach (var i in (nutrition.Items ?? new List<GymManagementSystem.Domain.Entities.NutritionPlanItem>()).OrderBy(x => x.DayOfWeek))
+                        {
+                            <li><strong>@i.DayOfWeek</strong> (@i.MealType): @i.FoodDescription (@i.Calories cal) @i.Notes</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p>No nutrition plan yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Trainer's Upcoming Sessions</h5>
+                @if (trainerUpcoming != null && trainerUpcoming.Count > 0)
+                {
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Date</th>
+                                <th>Start</th>
+                                <th>End</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var s in trainerUpcoming)
+                        {
+                            <tr>
+                                <td>@s.Title</td>
+                                <td>@s.SessionDate.ToString("yyyy-MM-dd")</td>
+                                <td>@s.StartTime</td>
+                                <td>@s.EndTime</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p>No trainer sessions yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+

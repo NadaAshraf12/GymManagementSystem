@@ -1,0 +1,40 @@
+@model IReadOnlyList<GymManagementSystem.Application.DTOs.WorkoutSessionDto>
+@{
+    ViewData["Title"] = "My Sessions";
+}
+<h2>My Sessions</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<p>
+    <a class="btn btn-primary" asp-action="Create">Create Session</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Participants</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var s in Model)
+    {
+        <tr>
+            <td>@s.Title</td>
+            <td>@s.SessionDate.ToString("yyyy-MM-dd")</td>
+            <td>@s.StartTime</td>
+            <td>@s.EndTime</td>
+            <td>@s.CurrentParticipants/@s.MaxParticipants</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+

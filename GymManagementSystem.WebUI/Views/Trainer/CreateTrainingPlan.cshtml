@@ -1,0 +1,105 @@
+@model GymManagementSystem.WebUI.Models.CreateTrainingPlanViewModel
+@{
+    ViewData["Title"] = "Create Training Plan";
+}
+<h2>Create Training Plan</h2>
+
+<form asp-action="CreateTrainingPlan" method="post">
+    <input type="hidden" asp-for="MemberId" />
+
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Notes" class="form-label"></label>
+        <textarea asp-for="Notes" class="form-control"></textarea>
+    </div>
+
+    <h4>Items</h4>
+    <div id="items"></div>
+
+    <div class="mb-3">
+        <button type="button" id="addItem" class="btn btn-outline-primary">
+            Add Item
+        </button>
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a href="@Url.Action("MyMembers", "Trainer")" class="btn btn-warning">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function() {
+            const itemsContainer = document.getElementById('items');
+            const addBtn = document.getElementById('addItem');
+
+            function buildItem(index) {
+                return `
+<div class="card mb-3 p-3 item" data-index="${index}">
+  <div class="d-flex justify-content-between">
+    <strong>Item #${index + 1}</strong>
+    <button type="button" class="btn btn-sm btn-outline-danger remove-item">Remove</button>
+  </div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-2">
+      <label class="form-label">Day</label>
+      <select name="Items[${index}].DayOfWeek" class="form-select">
+        ${[0,1,2,3,4,5,6].map(v => `<option value="${v}">${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][v]}</option>`).join('')}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Exercise</label>
+      <input name="Items[${index}].ExerciseName" class="form-control" />
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Sets</label>
+      <input name="Items[${index}].Sets" class="form-control" type="number" min="1" />
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Reps</label>
+      <input name="Items[${index}].Reps" class="form-control" type="number" min="1" />
+    </div>
+    <div class="col-md-12">
+      <label class="form-label">Notes</label>
+      <input name="Items[${index}].Notes" class="form-control" />
+    </div>
+  </div>
+</div>`
+            }
+
+            function reindex() {
+                const cards = itemsContainer.querySelectorAll('.item');
+                cards.forEach((card, idx) => {
+                    card.dataset.index = idx;
+                    card.querySelector('strong').textContent = `Item #${idx + 1}`;
+                    card.querySelectorAll('select, input').forEach(input => {
+                        const name = input.getAttribute('name');
+                        const newName = name.replace(/Items\[[0-9]+\]/, `Items[${idx}]`);
+                        input.setAttribute('name', newName);
+                    });
+                });
+            }
+
+            addBtn.addEventListener('click', () => {
+                const index = itemsContainer.querySelectorAll('.item').length;
+                itemsContainer.insertAdjacentHTML('beforeend', buildItem(index));
+            });
+
+            itemsContainer.addEventListener('click', (e) => {
+                if (e.target && e.target.classList.contains('remove-item')) {
+                    e.target.closest('.item').remove();
+                    reindex();
+                }
+            });
+
+            // start with one empty row
+            addBtn.click();
+        })();
+    </script>
+}
+
+
