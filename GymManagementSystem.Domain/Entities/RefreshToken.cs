@@ -12,6 +12,5 @@ public class RefreshToken : BaseEntity
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     
-    // Navigation property
     public virtual ApplicationUser User { get; set; } = null!;
 }

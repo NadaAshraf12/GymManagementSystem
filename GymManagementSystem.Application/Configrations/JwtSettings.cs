@@ -8,7 +8,6 @@
         public int AccessTokenExpireMinutes { get; set; } = 15;
         public int RefreshTokenExpireDays { get; set; } = 7;
         
-        // Backward compatibility
         public int ExpireMinutes 
         { 
             get => AccessTokenExpireMinutes; 

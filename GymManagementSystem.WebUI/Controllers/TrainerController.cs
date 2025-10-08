@@ -16,17 +16,20 @@ public class TrainerController : Controller
     private readonly ITrainingPlanService _trainingPlanService;
     private readonly INutritionPlanService _nutritionPlanService;
     private readonly IApplicationDbContext _db;
+    private readonly ISessionService _sessionService;
 
     public TrainerController(
         ITrainerAssignmentService assignmentService,
         ITrainingPlanService trainingPlanService,
         INutritionPlanService nutritionPlanService,
-        IApplicationDbContext db)
+        IApplicationDbContext db,
+        ISessionService sessionService)
     {
         _assignmentService = assignmentService;
         _trainingPlanService = trainingPlanService;
         _nutritionPlanService = nutritionPlanService;
         _db = db;
+        _sessionService = sessionService;
     }
 
     [HttpGet]
@@ -41,10 +44,59 @@ public class TrainerController : Controller
             {
                 MemberId = m.Id,
                 Name = m.FirstName + " " + m.LastName,
-                MemberCode = m.MemberCode
+                MemberCode = m.MemberCode,
+                TrainingCompleted = _db.TrainingPlanItems
+                    .Where(i => i.TrainingPlan.MemberId == m.Id)
+                    .Count(i => i.IsCompleted),
+                TrainingTotal = _db.TrainingPlanItems
+                    .Count(i => i.TrainingPlan.MemberId == m.Id),
+                NutritionCompleted = _db.NutritionPlanItems
+                    .Where(i => i.NutritionPlan.MemberId == m.Id)
+                    .Count(i => i.IsCompleted),
+                NutritionTotal = _db.NutritionPlanItems
+                    .Count(i => i.NutritionPlan.MemberId == m.Id)
             }).ToListAsync();
 
         return View(members);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Sessions()
+    {
+        var trainerId = GetCurrentTrainerId();
+        var today = DateTime.UtcNow.Date;
+        var sessions = await _db.WorkoutSessions
+            .Where(ws => ws.TrainerId == trainerId && ws.SessionDate >= today)
+            .OrderBy(ws => ws.SessionDate).ThenBy(ws => ws.StartTime)
+            .Include(ws => ws.MemberSessions)
+            .ToListAsync();
+        return View(sessions);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SessionAttendance(int id)
+    {
+        var trainerId = GetCurrentTrainerId();
+        var session = await _db.WorkoutSessions
+            .Include(ws => ws.MemberSessions)
+            .ThenInclude(ms => ms.Member)
+            .FirstOrDefaultAsync(ws => ws.Id == id && ws.TrainerId == trainerId);
+        if (session == null) return NotFound();
+        return View(session);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetAttendance(int memberSessionId, bool attended)
+    {
+        var ms = await _db.MemberSessions.Include(x => x.WorkoutSession).FirstOrDefaultAsync(x => x.Id == memberSessionId);
+        if (ms == null) return NotFound();
+        var trainerId = GetCurrentTrainerId();
+        if (ms.WorkoutSession.TrainerId != trainerId) return Forbid();
+        ms.Attended = attended;
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Attendance updated.";
+        return RedirectToAction(nameof(SessionAttendance), new { id = ms.WorkoutSessionId });
     }
 
     [HttpGet]
@@ -123,7 +175,6 @@ public class TrainerController : Controller
 
     private string GetCurrentTrainerId()
     {
-        // For Admin acting as trainer, allow query param fallback
         var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return id ?? string.Empty;
     }

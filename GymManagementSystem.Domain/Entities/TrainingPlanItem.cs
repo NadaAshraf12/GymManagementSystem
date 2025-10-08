@@ -11,6 +11,7 @@ public class TrainingPlanItem : BaseEntity
     public int Sets { get; set; }
     public int Reps { get; set; }
     public string? Notes { get; set; }
+    public bool IsCompleted { get; set; }
 
     public virtual TrainingPlan TrainingPlan { get; set; } = null!;
 }

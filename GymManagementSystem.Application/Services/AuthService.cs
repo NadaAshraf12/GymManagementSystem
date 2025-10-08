@@ -100,7 +100,6 @@ public class AuthService : IAuthService
         }
         catch (Exception)
         {
-            // If it's not an UnauthorizedAccessException, still log the failed attempt
             if (!_context.LoginAudits.Any(la => la.Id == loginAudit.Id))
             {
                 loginAudit.FailureReason = "Unexpected error during login";

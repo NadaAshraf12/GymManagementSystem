@@ -24,7 +24,6 @@ public class ProfileController : BaseController
         _environment = environment;
     }
 
-    // GET: /Profile
     public async Task<IActionResult> Index()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -57,7 +56,6 @@ public class ProfileController : BaseController
         return View(profileViewModel);
     }
 
-    // GET: /Profile/Edit
     public async Task<IActionResult> Edit()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -84,7 +82,6 @@ public class ProfileController : BaseController
         return View(editViewModel);
     }
 
-    // POST: /Profile/Edit
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(EditProfileViewModel model)
@@ -106,12 +103,10 @@ public class ProfileController : BaseController
             return NotFound();
         }
 
-        // Update user properties
         user.FirstName = model.FirstName;
         user.LastName = model.LastName;
         user.PhoneNumber = model.PhoneNumber;
 
-        // Handle email change
         if (user.Email != model.Email)
         {
             var emailExists = await _userManager.FindByEmailAsync(model.Email);
@@ -122,16 +117,14 @@ public class ProfileController : BaseController
             }
 
             user.Email = model.Email;
-            user.UserName = model.Email; // Update username to match email
+            user.UserName = model.Email; 
         }
 
-        // Handle profile picture upload
         if (model.ProfileImageFile != null && model.ProfileImageFile.Length > 0)
         {
             var fileName = await SaveProfileImageAsync(model.ProfileImageFile, userId);
             if (!string.IsNullOrEmpty(fileName))
             {
-                // Delete old profile picture if exists
                 if (!string.IsNullOrEmpty(user.ProfilePicture))
                 {
                     DeleteProfileImage(user.ProfilePicture);
@@ -145,7 +138,6 @@ public class ProfileController : BaseController
         {
             TempData["Success"] = "Profile updated successfully!";
             
-            // Update the user's identity claims if email changed
             if (user.Email != model.Email)
             {
                 var claims = new List<Claim>
@@ -176,7 +168,6 @@ public class ProfileController : BaseController
         return View(model);
     }
 
-    // POST: /Profile/DeletePicture
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeletePicture()
@@ -252,7 +243,6 @@ public class ProfileController : BaseController
         }
         catch
         {
-            // Ignore deletion errors
         }
     }
 }

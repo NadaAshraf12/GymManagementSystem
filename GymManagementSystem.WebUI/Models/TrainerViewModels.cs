@@ -7,6 +7,10 @@ public class TrainerMemberListItem
     public string MemberId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string MemberCode { get; set; } = string.Empty;
+    public int TrainingCompleted { get; set; }
+    public int TrainingTotal { get; set; }
+    public int NutritionCompleted { get; set; }
+    public int NutritionTotal { get; set; }
 }
 
 public class CreateTrainingPlanViewModel
