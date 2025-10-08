@@ -1,0 +1,36 @@
+@model List<GymManagementSystem.Domain.Entities.WorkoutSession>
+@{
+    ViewData["Title"] = "My Sessions";
+}
+
+<h2>My Upcoming Sessions</h2>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Participants</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var s in Model)
+    {
+        <tr>
+            <td>@s.Title</td>
+            <td>@s.SessionDate.ToString("yyyy-MM-dd")</td>
+            <td>@s.StartTime</td>
+            <td>@s.EndTime</td>
+            <td>@s.CurrentParticipants / @s.MaxParticipants</td>
+            <td>
+                <a class="btn btn-sm btn-primary" href="@Url.Action("SessionAttendance", "Trainer", new { id = s.Id })">Manage Attendance</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+

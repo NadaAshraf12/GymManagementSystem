@@ -1,0 +1,63 @@
+@model GymManagementSystem.Domain.Entities.WorkoutSession
+@{
+    ViewData["Title"] = "Session Attendance";
+}
+
+<h2>Session Attendance - @Model.Title (@Model.SessionDate.ToString("yyyy-MM-dd"))</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Member</th>
+            <th>Booked At</th>
+            <th>Attended</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var ms in Model.MemberSessions)
+    {
+        <tr>
+            <td>@(ms.Member.FirstName + " " + ms.Member.LastName)</td>
+            <td>@ms.BookingDate.ToString("yyyy-MM-dd HH:mm")</td>
+            <td>
+                @if (ms.Attended)
+                {
+                    <span class="badge bg-success">Yes</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">No</span>
+                }
+            </td>
+            <td>
+                <form asp-action="SetAttendance" asp-controller="Trainer" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="memberSessionId" value="@ms.Id" />
+                    <input type="hidden" name="attended" value="true" />
+                    <button type="submit" class="btn btn-sm btn-success">Mark Present</button>
+                </form>
+                <form asp-action="SetAttendance" asp-controller="Trainer" method="post" class="d-inline ms-1">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="memberSessionId" value="@ms.Id" />
+                    <input type="hidden" name="attended" value="false" />
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Mark Absent</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<a class="btn btn-link" href="@Url.Action("Sessions", "Trainer")">Back to Sessions</a>
+
+

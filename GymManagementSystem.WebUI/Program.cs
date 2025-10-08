@@ -16,11 +16,9 @@ namespace GymManagementSystem.WebUI
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
             builder.Services.AddApplication(builder.Configuration);
             builder.Services.AddInfrastructure(builder.Configuration);
 
-            // Add Identity
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
                 options.SignIn.RequireConfirmedAccount = false;
@@ -43,7 +41,6 @@ namespace GymManagementSystem.WebUI
             
 
 
-            // Add JWT Authentication
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
@@ -71,7 +68,6 @@ namespace GymManagementSystem.WebUI
 
             builder.Services.AddControllersWithViews();
 
-            // Add CORS for API calls from frontend
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
@@ -84,11 +80,9 @@ namespace GymManagementSystem.WebUI
 
             var app = builder.Build();
 
-            // Seed roles and admin user
             DbSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
 
 
-            // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
@@ -102,7 +96,6 @@ namespace GymManagementSystem.WebUI
 
             app.UseRouting();
 
-            // Use CORS
             app.UseCors("AllowAll");
 
             app.UseAuthentication();
@@ -114,7 +107,6 @@ namespace GymManagementSystem.WebUI
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            //app.MapRazorPages();
 
             app.Run();
         }

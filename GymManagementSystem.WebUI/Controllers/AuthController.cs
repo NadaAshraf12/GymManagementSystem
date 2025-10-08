@@ -18,7 +18,6 @@ public class AuthController : BaseController
         _authService = authService;
     }
 
-    // GET: /Auth/Login
     [HttpGet]
     [AllowAnonymous]
     public IActionResult Login()
@@ -26,7 +25,6 @@ public class AuthController : BaseController
         return View();
     }
 
-    // POST: /Auth/Login
     [HttpPost]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
@@ -83,7 +81,6 @@ public class AuthController : BaseController
         return View(loginDto);
     }
 
-    // GET: /Auth/Register
     [HttpGet]
     [AllowAnonymous]
     public IActionResult Register()
@@ -91,7 +88,6 @@ public class AuthController : BaseController
         return View();
     }
 
-    // POST: /Auth/Register
     [HttpPost]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
@@ -103,24 +99,20 @@ public class AuthController : BaseController
         {
             var result = await _authService.RegisterAsync(registerDto);
 
-            // If RegisterAsync throws exception it will be caught below.
             TempData["Success"] = "Registration successful! Please login.";
             return RedirectToAction("Login", "Auth");
         }
         catch (ArgumentException ex)
         {
-            // Identity errors usually thrown as ArgumentException in your service — show message
             ModelState.AddModelError(string.Empty, ex.Message);
         }
         catch (Exception ex)
         {
-            // show real error for debugging
             ModelState.AddModelError(string.Empty, ex.GetBaseException().Message);
         }
 
         return View(registerDto);
     }
-    // GET: /Auth/Logout
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize]
@@ -141,7 +133,6 @@ public class AuthController : BaseController
         return RedirectToAction("Index", "Home");
     }
 
-    // GET: /Auth/ChangePassword
     [HttpGet]
     [Authorize]
     public IActionResult ChangePassword()
@@ -149,7 +140,6 @@ public class AuthController : BaseController
         return View();
     }
 
-    // POST: /Auth/ChangePassword
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
@@ -186,7 +176,6 @@ public class AuthController : BaseController
         return View(changePasswordDto);
     }
 
-    // POST: /Auth/RefreshToken
     [HttpPost]
     [AllowAnonymous]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
@@ -198,7 +187,6 @@ public class AuthController : BaseController
             
             var result = await _authService.RefreshTokenAsync(refreshTokenDto.RefreshToken, ipAddress, userAgent);
 
-            // Update session with new tokens
             HttpContext.Session.SetString("AccessToken", result.AccessToken);
             HttpContext.Session.SetString("RefreshToken", result.RefreshToken);
 
@@ -214,7 +202,6 @@ public class AuthController : BaseController
         }
     }
 
-    // GET: /Auth/AccessDenied
     [HttpGet]
     public IActionResult AccessDenied()
     {

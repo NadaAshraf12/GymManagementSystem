@@ -19,7 +19,6 @@ public class AdminController : BaseController
         _assignmentService = assignmentService;
     }
 
-    // GET: /Admin/LoginAudits
     public async Task<IActionResult> LoginAudits(int page = 1, int pageSize = 20)
     {
         var query = _context.LoginAudits
@@ -50,7 +49,6 @@ public class AdminController : BaseController
         return View(loginAudits);
     }
 
-    // GET: /Admin/ActiveSessions
     public async Task<IActionResult> ActiveSessions()
     {
         var activeSessions = await _context.LoginAudits
@@ -72,7 +70,6 @@ public class AdminController : BaseController
         return View(activeSessions);
     }
 
-    // GET: /Admin/AssignTrainer
     public async Task<IActionResult> AssignTrainer()
     {
         var trainers = await _context.Trainers.OrderBy(t => t.FirstName).ThenBy(t => t.LastName).ToListAsync();
@@ -82,7 +79,6 @@ public class AdminController : BaseController
         return View();
     }
 
-    // POST: /Admin/AssignTrainer
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AssignTrainer(string trainerId, string memberId, string? notes)

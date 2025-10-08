@@ -32,7 +32,6 @@ public class AdminTrainersController : Controller
     public async Task<IActionResult> Create(Trainer model)
     {
         if (!ModelState.IsValid) return View(model);
-        // Minimal create: only profile fields; account creation typically via Identity pages
         _db.Trainers.Add(model);
         await _db.SaveChangesAsync();
         TempData["Success"] = "Trainer created";

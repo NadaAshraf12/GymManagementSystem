@@ -1,18 +1,22 @@
 using System.Security.Claims;
 using GymManagementSystem.Application.Interfaces;
+using GymManagementSystem.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.WebUI.Controllers;
 
 [Authorize(Roles = "Member,Admin")] 
-public class MemberController : Controller
+public class MemberController : BaseController
 {
     private readonly IApplicationDbContext _db;
-    public MemberController(IApplicationDbContext db)
+    private readonly ISessionService _sessionService;
+    public MemberController(IApplicationDbContext db, ISessionService sessionService, UserManager<ApplicationUser> userManager) : base(userManager)
     {
         _db = db;
+        _sessionService = sessionService;
     }
 
     public async Task<IActionResult> MyPlans()
@@ -42,7 +46,6 @@ public class MemberController : Controller
             .Take(10)
             .ToListAsync();
 
-        // Upcoming sessions created by assigned trainer (not yet booked by member)
         List<Domain.Entities.WorkoutSession> trainerUpcomingSessions = new();
         if (assignment != null)
         {
@@ -55,13 +58,74 @@ public class MemberController : Controller
                 .ToListAsync();
         }
 
+        var bookedIds = upcomingSessions.Select(ms => ms.WorkoutSessionId).ToHashSet();
+
         ViewBag.Assignment = assignment;
         ViewBag.TrainingPlan = latestTrainingPlan;
         ViewBag.NutritionPlan = latestNutritionPlan;
         ViewBag.Upcoming = upcomingSessions;
         ViewBag.TrainerUpcoming = trainerUpcomingSessions;
+        ViewBag.BookedSessionIds = bookedIds;
 
         return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleTrainingItem(int itemId)
+    {
+        var memberId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var item = await _db.TrainingPlanItems.Include(i => i.TrainingPlan).FirstOrDefaultAsync(i => i.Id == itemId);
+        if (item == null || item.TrainingPlan.MemberId != memberId)
+            return Forbid();
+
+        item.IsCompleted = !item.IsCompleted;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(MyPlans));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleNutritionItem(int itemId)
+    {
+        var memberId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var item = await _db.NutritionPlanItems.Include(i => i.NutritionPlan).FirstOrDefaultAsync(i => i.Id == itemId);
+        if (item == null || item.NutritionPlan.MemberId != memberId)
+            return Forbid();
+
+        item.IsCompleted = !item.IsCompleted;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(MyPlans));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AttendSession(int workoutSessionId)
+    {
+        var memberId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(memberId)) return Unauthorized();
+
+        var ok = await _sessionService.BookMemberAsync(new Application.DTOs.BookMemberToSessionDto
+        {
+            MemberId = memberId,
+            WorkoutSessionId = workoutSessionId
+        });
+        if (!ok) TempData["Error"] = "Cannot book session (full or invalid).";
+        else TempData["Success"] = "You are booked for this session.";
+        return RedirectToAction(nameof(MyPlans));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> NotAttendSession(int workoutSessionId)
+    {
+        var memberId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(memberId)) return Unauthorized();
+
+        var ok = await _sessionService.CancelBookingAsync(memberId, workoutSessionId);
+        if (!ok) TempData["Error"] = "Cannot cancel booking.";
+        else TempData["Success"] = "Your booking was cancelled.";
+        return RedirectToAction(nameof(MyPlans));
     }
 }
 

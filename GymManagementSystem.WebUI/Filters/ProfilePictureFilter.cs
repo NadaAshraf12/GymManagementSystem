@@ -32,6 +32,5 @@ public class ProfilePictureFilter : IActionFilter
 
     public void OnActionExecuted(ActionExecutedContext context)
     {
-        // Nothing to do after action execution
     }
 }

@@ -15,7 +15,6 @@ public class MembersController : Controller
         _memberService = memberService;
     }
 
-    // GET: /Members
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -23,14 +22,12 @@ public class MembersController : Controller
         return View(members);
     }
 
-    // GET: /Members/Create
     [HttpGet]
     public IActionResult Create()
     {
         return View();
     }
 
-    // POST: /Members/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(MemberDto memberDto)

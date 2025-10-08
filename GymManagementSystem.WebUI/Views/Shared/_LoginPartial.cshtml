@@ -4,12 +4,6 @@
 @inject UserManager<ApplicationUser> UserManager
 
 <ul class="navbar-nav">
-    <!-- Debug info -->
-    @* <li class="nav-item">
-        <small class="text-muted">
-            Auth: @(User.Identity?.IsAuthenticated), Name: @User.Identity?.Name
-        </small>
-    </li> *@
     @if (User.Identity != null && User.Identity.IsAuthenticated)
     {
         <li class="nav-item dropdown">

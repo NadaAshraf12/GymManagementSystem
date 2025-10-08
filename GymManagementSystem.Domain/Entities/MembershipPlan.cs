@@ -1,9 +1,4 @@
 ﻿using GymManagementSystem.Domain.Entities.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GymManagementSystem.Domain.Entities
 {
@@ -15,7 +10,6 @@ namespace GymManagementSystem.Domain.Entities
         public int DurationInDays { get; set; }
         public int MaxEntriesPerDay { get; set; }
 
-        // Navigation Properties
         public virtual ICollection<Membership> Memberships { get; set; } = new List<Membership>();
     }
 }

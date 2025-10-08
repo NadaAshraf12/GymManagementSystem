@@ -15,6 +15,5 @@ public class LoginAudit : BaseEntity
     public string? JwtTokenId { get; set; }
     public string? RefreshTokenId { get; set; }
     
-    // Navigation property
     public virtual ApplicationUser User { get; set; } = null!;
 }

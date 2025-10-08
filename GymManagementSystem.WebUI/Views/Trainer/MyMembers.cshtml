@@ -14,6 +14,8 @@
         <tr>
             <th>Member Code</th>
             <th>Name</th>
+            <th>Training Progress</th>
+            <th>Nutrition Progress</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -23,6 +25,8 @@
         <tr>
             <td>@m.MemberCode</td>
             <td>@m.Name</td>
+            <td>@m.TrainingCompleted / @m.TrainingTotal</td>
+            <td>@m.NutritionCompleted / @m.NutritionTotal</td>
             <td>
                 <a class="btn btn-sm btn-primary" href="@Url.Action("CreateTrainingPlan", "Trainer", new { memberId = m.MemberId })">Create Training Plan</a>
                 <a class="btn btn-sm btn-success" href="@Url.Action("CreateNutritionPlan", "Trainer", new { memberId = m.MemberId })">Create Nutrition Plan</a>

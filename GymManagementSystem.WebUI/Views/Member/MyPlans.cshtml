@@ -7,104 +7,154 @@
     var trainerUpcoming = ViewBag.TrainerUpcoming as List<GymManagementSystem.Domain.Entities.WorkoutSession>;
 }
 
-<h2>My Plans</h2>
+<div class="container mt-4">
+    <h2 class="text-center mb-4 text-primary fw-bold">🏋️‍♀️ My Plans</h2>
 
-<div class="row g-3">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Assigned Trainer</h5>
-                @if (assignment?.Trainer != null)
-                {
-                    <p>@assignment.Trainer.FirstName @assignment.Trainer.LastName (@assignment.Trainer.Specialty)</p>
-                }
-                else
-                {
-                    <p>No trainer assigned yet.</p>
-                }
+    <div class="row g-4">
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-primary mb-3 shadow-sm">
+                <div class="card-header bg-primary text-white fw-bold">Assigned Trainer</div>
+                <div class="card-body">
+                    @if (assignment?.Trainer != null)
+                    {
+                        <h5 class="card-title">@assignment.Trainer.FirstName @assignment.Trainer.LastName</h5>
+                        <p class="card-text text-muted">@assignment.Trainer.Specialty</p>
+                    }
+                    else
+                    {
+                        <p class="text-secondary">No trainer assigned yet.</p>
+                    }
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Latest Training Plan</h5>
-                @if (training != null)
-                {
-                    <p><strong>@training.Title</strong> - @training.CreatedAt.ToString("yyyy-MM-dd")</p>
-                    <ul>
-                        @foreach (var i in (training.Items ?? new List<GymManagementSystem.Domain.Entities.TrainingPlanItem>()).OrderBy(x => x.DayOfWeek))
-                        {
-                            <li><strong>@i.DayOfWeek</strong>: @i.ExerciseName (@i.Sets x @i.Reps) @i.Notes</li>
-                        }
-                    </ul>
-                }
-                else
-                {
-                    <p>No training plan yet.</p>
-                }
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-success mb-3 shadow-sm">
+                <div class="card-header bg-success text-white fw-bold">Latest Training Plan</div>
+                <div class="card-body">
+                    @if (training != null)
+                    {
+                        <h5 class="card-title">@training.Title</h5>
+                        <p class="card-text text-muted">@training.CreatedAt.ToString("yyyy-MM-dd")</p>
+                        <ul class="list-group">
+                            @foreach (var i in (training.Items ?? new List<GymManagementSystem.Domain.Entities.TrainingPlanItem>()).OrderBy(x => x.DayOfWeek))
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@i.DayOfWeek:</strong> @i.ExerciseName (@i.Sets x @i.Reps)
+                                        <small class="text-muted">@i.Notes</small>
+                                    </div>
+                                    <form asp-action="ToggleTrainingItem" asp-controller="Member" method="post">
+                                        <input type="hidden" name="itemId" value="@i.Id" />
+                                        <button type="submit" class="btn btn-sm @(i.IsCompleted ? "btn-success" : "btn-outline-secondary")">
+                                            @(i.IsCompleted ? "✓ Done" : "Mark")
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-secondary">No training plan yet.</p>
+                    }
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Latest Nutrition Plan</h5>
-                @if (nutrition != null)
-                {
-                    <p><strong>@nutrition.Title</strong> - @nutrition.CreatedAt.ToString("yyyy-MM-dd")</p>
-                    <ul>
-                        @foreach (var i in (nutrition.Items ?? new List<GymManagementSystem.Domain.Entities.NutritionPlanItem>()).OrderBy(x => x.DayOfWeek))
-                        {
-                            <li><strong>@i.DayOfWeek</strong> (@i.MealType): @i.FoodDescription (@i.Calories cal) @i.Notes</li>
-                        }
-                    </ul>
-                }
-                else
-                {
-                    <p>No nutrition plan yet.</p>
-                }
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-warning mb-3 shadow-sm">
+                <div class="card-header bg-warning fw-bold">Latest Nutrition Plan</div>
+                <div class="card-body">
+                    @if (nutrition != null)
+                    {
+                        <h5 class="card-title">@nutrition.Title</h5>
+                        <p class="card-text text-muted">@nutrition.CreatedAt.ToString("yyyy-MM-dd")</p>
+                        <ul class="list-group">
+                            @foreach (var i in (nutrition.Items ?? new List<GymManagementSystem.Domain.Entities.NutritionPlanItem>()).OrderBy(x => x.DayOfWeek))
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@i.DayOfWeek:</strong> (@i.MealType) @i.FoodDescription
+                                        <small class="text-muted">(@i.Calories cal) @i.Notes</small>
+                                    </div>
+                                    <form asp-action="ToggleNutritionItem" asp-controller="Member" method="post">
+                                        <input type="hidden" name="itemId" value="@i.Id" />
+                                        <button type="submit" class="btn btn-sm @(i.IsCompleted ? "btn-warning" : "btn-outline-secondary")">
+                                            @(i.IsCompleted ? "✓ Done" : "Mark")
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-secondary">No nutrition plan yet.</p>
+                    }
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Trainer's Upcoming Sessions</h5>
-                @if (trainerUpcoming != null && trainerUpcoming.Count > 0)
-                {
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Date</th>
-                                <th>Start</th>
-                                <th>End</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var s in trainerUpcoming)
-                        {
-                            <tr>
-                                <td>@s.Title</td>
-                                <td>@s.SessionDate.ToString("yyyy-MM-dd")</td>
-                                <td>@s.StartTime</td>
-                                <td>@s.EndTime</td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <p>No trainer sessions yet.</p>
-                }
+        <div class="col-12">
+            <div class="card border-info mb-3 shadow-sm">
+                <div class="card-header bg-info text-white fw-bold">Trainer's Upcoming Sessions</div>
+                <div class="card-body">
+                    @if (trainerUpcoming != null && trainerUpcoming.Count > 0)
+                    {
+                        var booked = ViewBag.BookedSessionIds as HashSet<int> ?? new HashSet<int>();
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-info text-center">
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Date</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Participants</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in trainerUpcoming)
+                                {
+                                    <tr class="text-center">
+                                        <td>@s.Title</td>
+                                        <td>@s.SessionDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@s.StartTime</td>
+                                        <td>@s.EndTime</td>
+                                        <td>@s.CurrentParticipants / @s.MaxParticipants</td>
+                                        <td>
+                                            @if (booked.Contains(s.Id))
+                                            {
+                                                <form asp-action="NotAttendSession" asp-controller="Member" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="workoutSessionId" value="@s.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Not attend</button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                var isFull = s.CurrentParticipants >= s.MaxParticipants;
+                                                <form asp-action="AttendSession" asp-controller="Member" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="workoutSessionId" value="@s.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-success" @(isFull ? "disabled" : null)>I will attend</button>
+                                                </form>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-secondary">No trainer sessions yet.</p>
+                    }
+                </div>
             </div>
         </div>
+
     </div>
 </div>
-
-
