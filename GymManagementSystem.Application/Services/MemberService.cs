@@ -98,6 +98,7 @@ namespace GymManagementSystem.Application.Services
 
             member.FirstName = memberDto.FirstName;
             member.LastName = memberDto.LastName;
+            member.Email = memberDto.Email;
             member.PhoneNumber = memberDto.PhoneNumber;
             member.DateOfBirth = memberDto.DateOfBirth;
             member.Gender = memberDto.Gender;

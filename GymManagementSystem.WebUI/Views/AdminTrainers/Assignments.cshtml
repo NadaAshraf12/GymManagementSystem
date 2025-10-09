@@ -5,6 +5,16 @@
 }
 <h2>Assignments for @trainer?.FirstName @trainer?.LastName</h2>
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
 <table class="table table-striped">
     <thead>
         <tr>
@@ -12,6 +22,7 @@
             <th>Member Name</th>
             <th>Assigned At</th>
             <th>Notes</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -22,6 +33,17 @@
             <td>@a.Member.FirstName @a.Member.LastName</td>
             <td>@a.AssignedAt.ToString("yyyy-MM-dd HH:mm")</td>
             <td>@a.Notes</td>
+            <td>
+                <form asp-action="RemoveMember" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="assignmentId" value="@a.Id" />
+                    <input type="hidden" name="trainerId" value="@trainer.Id" />
+                    <button type="submit" class="btn btn-sm btn-danger" 
+                            onclick="return confirm('Are you sure you want to remove this member from the trainer?')">
+                        Remove Member
+                    </button>
+                </form>
+            </td>
         </tr>
     }
     </tbody>

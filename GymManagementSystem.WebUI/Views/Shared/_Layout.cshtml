@@ -122,6 +122,21 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        // Auto-hide success messages after 10 seconds
+        $(document).ready(function() {
+            $('.alert-success').each(function() {
+                var alert = $(this);
+                setTimeout(function() {
+                    alert.fadeOut('slow', function() {
+                        alert.remove();
+                    });
+                }, 10000); // 10 seconds
+            });
+        });
+    </script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
