@@ -83,6 +83,26 @@ public class AdminTrainersController : Controller
         return View(assignments);
     }
     [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveMember(int assignmentId, string trainerId)
+    {
+        var assignment = await _db.TrainerMemberAssignments
+            .FirstOrDefaultAsync(a => a.Id == assignmentId);
+        
+        if (assignment == null)
+        {
+            TempData["Error"] = "Assignment not found.";
+            return RedirectToAction(nameof(Assignments), new { id = trainerId });
+        }
+
+        _db.TrainerMemberAssignments.Remove(assignment);
+        await _db.SaveChangesAsync();
+        
+        TempData["Success"] = "Member removed from trainer successfully.";
+        return RedirectToAction(nameof(Assignments), new { id = trainerId });
+    }
+
+    [HttpPost]
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> Delete(string id)
 {
