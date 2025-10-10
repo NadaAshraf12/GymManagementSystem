@@ -15,20 +15,20 @@ public class TrainerController : Controller
     private readonly ITrainerAssignmentService _assignmentService;
     private readonly ITrainingPlanService _trainingPlanService;
     private readonly INutritionPlanService _nutritionPlanService;
-    private readonly IApplicationDbContext _db;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ISessionService _sessionService;
 
     public TrainerController(
         ITrainerAssignmentService assignmentService,
         ITrainingPlanService trainingPlanService,
         INutritionPlanService nutritionPlanService,
-        IApplicationDbContext db,
+        IUnitOfWork unitOfWork,
         ISessionService sessionService)
     {
         _assignmentService = assignmentService;
         _trainingPlanService = trainingPlanService;
         _nutritionPlanService = nutritionPlanService;
-        _db = db;
+        _unitOfWork = unitOfWork;
         _sessionService = sessionService;
     }
 
@@ -39,21 +39,25 @@ public class TrainerController : Controller
         var assignments = await _assignmentService.GetAssignmentsForTrainerAsync(trainerId);
 
         var memberIds = assignments.Select(a => a.MemberId).ToList();
-        var members = await _db.Members.Where(m => memberIds.Contains(m.Id))
+        var membersRepo = _unitOfWork.Repository<Member>();
+        var tpItemRepo = _unitOfWork.Repository<TrainingPlanItem>();
+        var npItemRepo = _unitOfWork.Repository<NutritionPlanItem>();
+
+        var members = await membersRepo.Query().Where(m => memberIds.Contains(m.Id))
             .Select(m => new TrainerMemberListItem
             {
                 MemberId = m.Id,
                 Name = m.FirstName + " " + m.LastName,
                 MemberCode = m.MemberCode,
-                TrainingCompleted = _db.TrainingPlanItems
-                    .Where(i => i.TrainingPlan.MemberId == m.Id)
-                    .Count(i => i.IsCompleted),
-                TrainingTotal = _db.TrainingPlanItems
+                TrainingCompleted = tpItemRepo.Query()
+                    .Where(i => i.TrainingPlan.MemberId == m.Id && i.IsCompleted)
+                    .Count(),
+                TrainingTotal = tpItemRepo.Query()
                     .Count(i => i.TrainingPlan.MemberId == m.Id),
-                NutritionCompleted = _db.NutritionPlanItems
-                    .Where(i => i.NutritionPlan.MemberId == m.Id)
-                    .Count(i => i.IsCompleted),
-                NutritionTotal = _db.NutritionPlanItems
+                NutritionCompleted = npItemRepo.Query()
+                    .Where(i => i.NutritionPlan.MemberId == m.Id && i.IsCompleted)
+                    .Count(),
+                NutritionTotal = npItemRepo.Query()
                     .Count(i => i.NutritionPlan.MemberId == m.Id)
             }).ToListAsync();
 
@@ -65,7 +69,8 @@ public class TrainerController : Controller
     {
         var trainerId = GetCurrentTrainerId();
         var today = DateTime.UtcNow.Date;
-        var sessions = await _db.WorkoutSessions
+        var wsRepo = _unitOfWork.Repository<WorkoutSession>();
+        var sessions = await wsRepo.Query()
             .Where(ws => ws.TrainerId == trainerId && ws.SessionDate >= today)
             .OrderBy(ws => ws.SessionDate).ThenBy(ws => ws.StartTime)
             .Include(ws => ws.MemberSessions)
@@ -77,7 +82,8 @@ public class TrainerController : Controller
     public async Task<IActionResult> SessionAttendance(int id)
     {
         var trainerId = GetCurrentTrainerId();
-        var session = await _db.WorkoutSessions
+        var wsRepo = _unitOfWork.Repository<WorkoutSession>();
+        var session = await wsRepo.Query()
             .Include(ws => ws.MemberSessions)
             .ThenInclude(ms => ms.Member)
             .FirstOrDefaultAsync(ws => ws.Id == id && ws.TrainerId == trainerId);
@@ -89,12 +95,13 @@ public class TrainerController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SetAttendance(int memberSessionId, bool attended)
     {
-        var ms = await _db.MemberSessions.Include(x => x.WorkoutSession).FirstOrDefaultAsync(x => x.Id == memberSessionId);
+        var msRepo = _unitOfWork.Repository<MemberSession>();
+        var ms = await msRepo.Query().Include(x => x.WorkoutSession).FirstOrDefaultAsync(x => x.Id == memberSessionId);
         if (ms == null) return NotFound();
         var trainerId = GetCurrentTrainerId();
         if (ms.WorkoutSession.TrainerId != trainerId) return Forbid();
         ms.Attended = attended;
-        await _db.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
         TempData["Success"] = "Attendance updated.";
         return RedirectToAction(nameof(SessionAttendance), new { id = ms.WorkoutSessionId });
     }

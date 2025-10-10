@@ -81,20 +81,28 @@ public class AdminController : BaseController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AssignTrainer(string trainerId, string memberId, string? notes)
+    public async Task<IActionResult> AssignTrainer(string trainerId, string memberId, string notes)
     {
         if (string.IsNullOrWhiteSpace(trainerId) || string.IsNullOrWhiteSpace(memberId))
         {
             TempData["Error"] = "Please select both trainer and member.";
             return RedirectToAction(nameof(AssignTrainer));
         }
-        await _assignmentService.AssignAsync(new Application.DTOs.AssignTrainerDto
+
+        var result = await _assignmentService.AssignAsync(new Application.DTOs.AssignTrainerDto
         {
             TrainerId = trainerId,
             MemberId = memberId,
             Notes = notes
         });
-        TempData["Success"] = "Trainer assigned to member successfully.";
+
+        if (result.Success)
+            TempData["Success"] = result.Message;
+        else
+            TempData["Error"] = result.Message;
+
         return RedirectToAction(nameof(AssignTrainer));
     }
+
+
 }

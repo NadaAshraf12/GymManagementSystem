@@ -57,6 +57,7 @@ public class AdminTrainersController : Controller
 
         t.FirstName = model.FirstName;
         t.LastName = model.LastName;
+        t.Email = model.Email;
         t.Specialty = model.Specialty;
         t.Certification = model.Certification;
         t.Experience = model.Experience;

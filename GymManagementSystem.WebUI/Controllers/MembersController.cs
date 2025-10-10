@@ -1,7 +1,9 @@
 ﻿using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
+using GymManagementSystem.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 
 namespace GymManagementSystem.WebUI.Controllers;
 
@@ -9,10 +11,14 @@ namespace GymManagementSystem.WebUI.Controllers;
 public class MembersController : Controller
 {
     private readonly IMemberService _memberService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
 
-    public MembersController(IMemberService memberService)
+    public MembersController(IMemberService memberService, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
         _memberService = memberService;
+        _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     [HttpGet]
@@ -37,14 +43,39 @@ public class MembersController : Controller
             return View(memberDto);
         }
 
-        var ok = await _memberService.CreateMemberAsync(memberDto);
-        if (ok)
+        if (!await _roleManager.RoleExistsAsync("Member"))
         {
+            await _roleManager.CreateAsync(new IdentityRole("Member"));
+        }
+
+        var member = new Member
+        {
+            Id = Guid.NewGuid().ToString(),
+            FirstName = memberDto.FirstName,
+            LastName = memberDto.LastName,
+            Email = memberDto.Email,
+            UserName = memberDto.Email,
+            PhoneNumber = memberDto.PhoneNumber,
+            DateOfBirth = memberDto.DateOfBirth,
+            Gender = memberDto.Gender,
+            Address = memberDto.Address,
+            MemberCode = "MEM" + DateTime.Now.ToString("yyyyMMddHHmmss"),
+            EmailConfirmed = true
+        };
+
+        var tempPassword = "Member@123"; 
+        var result = await _userManager.CreateAsync(member, tempPassword);
+        if (result.Succeeded)
+        {
+            await _userManager.AddToRoleAsync(member, "Member");
             TempData["Success"] = "Member created successfully";
             return RedirectToAction("Index");
         }
 
-        ModelState.AddModelError(string.Empty, "Failed to create member");
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError(string.Empty, error.Description);
+        }
         return View(memberDto);
     }
 

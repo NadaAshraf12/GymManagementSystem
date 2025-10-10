@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace GymManagementSystem.Application.DTOs
+﻿namespace GymManagementSystem.Application.DTOs
 {
     public class AuthResponseDto
     {
@@ -17,7 +11,6 @@ namespace GymManagementSystem.Application.DTOs
         public string FullName { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         
-        // Backward compatibility
         public string Token 
         { 
             get => AccessToken; 

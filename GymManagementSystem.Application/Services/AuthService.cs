@@ -154,16 +154,13 @@ public class AuthService : IAuthService
             throw new ArgumentException($"User creation failed: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
 
-        // Add to role - مع handle للأخطاء
         var roleResult = await _userManager.AddToRoleAsync(user, registerDto.Role);
         if (!roleResult.Succeeded)
         {
-            // لو فشل الـ role assignment، مش بنرمي exception علشان اليوزر اتعمل
-            // علشان مفيش rollback تلقائي
+            
             Console.WriteLine($"Role assignment failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
         }
 
-        // Generate tokens - مع handle للأخطاء
         string accessToken = string.Empty;
         string refreshToken = string.Empty;
         try
@@ -186,8 +183,7 @@ public class AuthService : IAuthService
         }
         catch (Exception tokenEx)
         {
-            // لو فشل الـ token generation، بنرجع token فاضي
-            // لكن بنكمل علشان اليوزر اتعمل
+            
             Console.WriteLine($"Token generation failed: {tokenEx.Message}");
             accessToken = string.Empty;
             refreshToken = string.Empty;
