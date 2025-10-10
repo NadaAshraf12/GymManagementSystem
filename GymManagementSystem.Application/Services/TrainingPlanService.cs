@@ -1,45 +1,36 @@
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Domain.Entities;
+using Mapster;
 
 namespace GymManagementSystem.Application.Services;
 
 public class TrainingPlanService : ITrainingPlanService
 {
-    private readonly IApplicationDbContext _db;
-    public TrainingPlanService(IApplicationDbContext db)
+    private readonly IUnitOfWork _unitOfWork;
+    public TrainingPlanService(IUnitOfWork unitOfWork)
     {
-        _db = db;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<int> CreateAsync(CreateTrainingPlanDto dto)
     {
-        var plan = new TrainingPlan
-        {
-            MemberId = dto.MemberId,
-            TrainerId = dto.TrainerId,
-            Title = dto.Title,
-            Notes = dto.Notes,
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.TrainingPlans.Add(plan);
-        await _db.SaveChangesAsync();
+        var plan = dto.Adapt<TrainingPlan>();
+        plan.CreatedAt = DateTime.UtcNow;
+        var planRepo = _unitOfWork.Repository<TrainingPlan>();
+        await planRepo.AddAsync(plan);
+        await _unitOfWork.SaveChangesAsync();
 
         if (dto.Items.Count > 0)
         {
-            foreach (var item in dto.Items)
+            var items = dto.Items.Adapt<List<TrainingPlanItem>>();
+            foreach (var item in items)
             {
-                _db.TrainingPlanItems.Add(new TrainingPlanItem
-                {
-                    TrainingPlanId = plan.Id,
-                    DayOfWeek = item.DayOfWeek,
-                    ExerciseName = item.ExerciseName,
-                    Sets = item.Sets,
-                    Reps = item.Reps,
-                    Notes = item.Notes
-                });
+                item.TrainingPlanId = plan.Id;
             }
-            await _db.SaveChangesAsync();
+            var itemRepo = _unitOfWork.Repository<TrainingPlanItem>();
+            await itemRepo.AddRangeAsync(items);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         return plan.Id;

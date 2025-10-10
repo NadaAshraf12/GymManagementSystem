@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Infrastructure.Data;
+using GymManagementSystem.Infrastructure.Repositories;
 
 namespace GymManagementSystem.Infrastructure
 {
@@ -16,6 +17,7 @@ namespace GymManagementSystem.Infrastructure
                     b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;
         }

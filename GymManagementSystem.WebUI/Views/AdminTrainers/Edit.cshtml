@@ -16,6 +16,11 @@
             <input asp-for="LastName" class="form-control" />
         </div>
         <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input asp-for="Email" class="form-control" type="email" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
             <label class="form-label">Specialty</label>
             <input asp-for="Specialty" class="form-control" />
         </div>
@@ -45,5 +50,3 @@
         </div>
     </div>
 </form>
-
-

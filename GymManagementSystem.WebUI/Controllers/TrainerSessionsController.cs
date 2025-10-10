@@ -31,8 +31,8 @@ public class TrainerSessionsController : Controller
         return View(new CreateWorkoutSessionDto
         {
             SessionDate = DateTime.UtcNow.Date,
-            StartTime = new TimeSpan(10,0,0),
-            EndTime = new TimeSpan(11,0,0),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 0, 0),
             MaxParticipants = 10
         });
     }
@@ -46,8 +46,14 @@ public class TrainerSessionsController : Controller
         model.TrainerId = trainerId;
         await _sessionService.CreateAsync(model);
         TempData["Success"] = "Session created";
-        return RedirectToAction(nameof(Index));
+        return Redirect("~/Trainer/Sessions");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Sessions()
+    {
+        var trainerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var sessions = await _sessionService.GetByTrainerAsync(trainerId);
+        return View(sessions);
     }
 }
-
-

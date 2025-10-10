@@ -3,6 +3,10 @@ using GymManagementSystem.Application.Services;
 using GymManagementSystem.Application.Configrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Mapster;
+using GymManagementSystem.Application.Mappings;
+using FluentValidation;
+using System.Reflection;
 
 namespace GymManagementSystem.Application;
 
@@ -25,6 +29,12 @@ public static class DependencyInjection
             options.Audience = configuration["Jwt:Audience"] ?? string.Empty;
             options.ExpireMinutes = int.Parse(configuration["Jwt:ExpireMinutes"] ?? "60");
         });
+
+        MapsterConfig.Register();
+        var typeAdapterConfig = TypeAdapterConfig.GlobalSettings;
+        services.AddSingleton(typeAdapterConfig);
+
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly(), includeInternalTypes: true);
 
         return services;
     }

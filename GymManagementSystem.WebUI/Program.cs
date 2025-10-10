@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens; 
 using System.Text;
 using GymManagementSystem.WebUI.Seeding;
+using FluentValidation.AspNetCore;
 
 namespace GymManagementSystem.WebUI
 {

@@ -13,14 +13,22 @@ public class TrainerAssignmentService : ITrainerAssignmentService
         _db = db;
     }
 
-    public async Task<TrainerAssignmentDto> AssignAsync(AssignTrainerDto dto)
+    public async Task<AssignmentResultDto> AssignAsync(AssignTrainerDto dto)
     {
-        var exists = await _db.TrainerMemberAssignments.FirstOrDefaultAsync(a => a.TrainerId == dto.TrainerId && a.MemberId == dto.MemberId);
-        if (exists != null)
+        // Check if member already has a trainer
+        var existingForMember = await _db.TrainerMemberAssignments
+            .FirstOrDefaultAsync(a => a.MemberId == dto.MemberId);
+
+        if (existingForMember != null)
         {
-            return Map(exists);
+            return new AssignmentResultDto
+            {
+                Success = false,
+                Message = "This member is already assigned to another trainer."
+            };
         }
 
+        // Create new assignment
         var assignment = new TrainerMemberAssignment
         {
             TrainerId = dto.TrainerId,
@@ -28,10 +36,17 @@ public class TrainerAssignmentService : ITrainerAssignmentService
             Notes = dto.Notes,
             AssignedAt = DateTime.UtcNow
         };
+
         _db.TrainerMemberAssignments.Add(assignment);
         await _db.SaveChangesAsync();
-        return Map(assignment);
+
+        return new AssignmentResultDto
+        {
+            Success = true,
+            Message = "Trainer assigned successfully!"
+        };
     }
+
 
     public async Task<bool> UnassignAsync(int assignmentId)
     {

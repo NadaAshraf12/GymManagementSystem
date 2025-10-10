@@ -43,13 +43,11 @@ public class AuthController : BaseController
             HttpContext.Session.SetString("AccessToken", result.AccessToken ?? string.Empty);
             HttpContext.Session.SetString("RefreshToken", result.RefreshToken ?? string.Empty);
 
-            // Also pass tokens once via TempData so client-side AuthTest can pick them up
             if (!string.IsNullOrEmpty(result.AccessToken))
                 TempData["AccessToken"] = result.AccessToken;
             if (!string.IsNullOrEmpty(result.RefreshToken))
                 TempData["RefreshToken"] = result.RefreshToken;
 
-            // Create cookie-based authentication principal so MVC views see User.Identity.IsAuthenticated
             var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, result.UserId),
@@ -74,7 +72,6 @@ public class AuthController : BaseController
         }
         catch (Exception ex)
         {
-            // for debugging show detailed message (in prod you might log and show friendly text)
             ModelState.AddModelError(string.Empty, ex.GetBaseException().Message);
         }
 

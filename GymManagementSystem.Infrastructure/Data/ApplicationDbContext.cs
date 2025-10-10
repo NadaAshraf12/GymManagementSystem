@@ -136,6 +136,7 @@ namespace GymManagementSystem.Infrastructure.Data
             builder.Entity<TrainerMemberAssignment>(entity =>
             {
                 entity.HasIndex(x => new { x.TrainerId, x.MemberId }).IsUnique();
+                entity.HasIndex(x => x.MemberId).IsUnique();
                 entity.HasOne(a => a.Trainer)
                     .WithMany()
                     .HasForeignKey(a => a.TrainerId)

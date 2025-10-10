@@ -2,45 +2,66 @@
     ViewData["Title"] = "Assign Trainer";
 }
 
-<h2>Assign Trainer to Member</h2>
+<div class="container mt-4">
+    <h2 class="mb-4 text-center text-primary">Assign Trainer to Member</h2>
 
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success">@TempData["Success"]</div>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success text-center">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger text-center">@TempData["Error"]</div>
+    }
+
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body">
+            <form asp-action="AssignTrainer" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Trainer</label>
+                    <select name="trainerId" class="form-select" required>
+                        <option value="">-- Select Trainer --</option>
+                        @foreach (var t in (IEnumerable<GymManagementSystem.Domain.Entities.Trainer>)ViewBag.Trainers)
+                        {
+                            <option value="@t.Id">@t.FirstName @t.LastName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Member</label>
+                    <select name="memberId" class="form-select" required>
+                        <option value="">-- Select Member --</option>
+                        @foreach (var m in (IEnumerable<GymManagementSystem.Domain.Entities.Member>)ViewBag.Members)
+                        {
+                            <option value="@m.Id">@m.MemberCode - @m.FirstName @m.LastName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Notes</label>
+                    <input name="notes" class="form-control" placeholder="Add any notes..." />
+                </div>
+
+                <div class="col-12 mt-3 text-center">
+                    <button type="submit" class="btn btn-primary px-4 me-2">
+                        <i class="bi bi-person-check"></i> Assign
+                    </button>
+                    <button type="button" class="btn btn-secondary px-4" onclick="history.back()">
+                        <i class="bi bi-arrow-left"></i> Back To List
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(el => el.remove());
+        }, 3000);
+    </script>
 }
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">@TempData["Error"]</div>
-}
-
-<form asp-action="AssignTrainer" method="post" class="row g-3">
-    <div class="col-md-4">
-        <label class="form-label">Trainer</label>
-        <select name="trainerId" class="form-select">
-            <option value="">-- Select Trainer --</option>
-            @foreach (var t in (IEnumerable<GymManagementSystem.Domain.Entities.Trainer>)ViewBag.Trainers)
-            {
-                <option value="@t.Id">@t.FirstName @t.LastName</option>
-            }
-        </select>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label">Member</label>
-        <select name="memberId" class="form-select">
-            <option value="">-- Select Member --</option>
-            @foreach (var m in (IEnumerable<GymManagementSystem.Domain.Entities.Member>)ViewBag.Members)
-            {
-                <option value="@m.Id">@m.MemberCode - @m.FirstName @m.LastName</option>
-            }
-        </select>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label">Notes</label>
-        <input name="notes" class="form-control" />
-    </div>
-    <div class="col-12">
-        <button type="submit" class="btn btn-primary">Assign</button>
-    </div>
-</form>
-
-
