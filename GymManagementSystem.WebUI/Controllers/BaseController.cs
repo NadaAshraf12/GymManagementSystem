@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication;
 using GymManagementSystem.Domain.Entities;
 using System.Security.Claims;
 
@@ -26,6 +27,15 @@ public class BaseController : Controller
                 _currentUser = await _userManager.FindByIdAsync(userId);
                 if (_currentUser != null)
                 {
+                    // Check if user is still active
+                    if (!_currentUser.IsActive)
+                    {
+                        // Sign out the user if they are deactivated
+                        await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                        TempData["Error"] = "Your account has been deactivated. Please contact the administrator.";
+                        return;
+                    }
+                    
                     ViewBag.ProfilePicture = _currentUser.ProfilePicture;
                     ViewBag.CurrentUser = _currentUser;
                 }
@@ -37,5 +47,11 @@ public class BaseController : Controller
     {
         base.OnActionExecuting(context);
         LoadUserDataAsync().GetAwaiter().GetResult();
+        
+        // If user was deactivated and signed out, redirect to login
+        if (User?.Identity?.IsAuthenticated == false && TempData.ContainsKey("Error"))
+        {
+            context.Result = RedirectToAction("Login", "Auth");
+        }
     }
 }

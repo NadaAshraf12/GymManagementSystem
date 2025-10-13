@@ -63,12 +63,28 @@ public class AuthController : BaseController
 
             await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
 
+            // Enforce first login password change
+            var user = await _userManager.FindByIdAsync(result.UserId);
+            if (user != null && user.MustChangePassword)
+            {
+                TempData["Info"] = "Please change your password to continue.";
+                return RedirectToAction("ChangePassword", "Auth");
+            }
+
             TempData["Success"] = "Login successful!";
             return RedirectToAction("Index", "Home");
         }
         catch (UnauthorizedAccessException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
+            // Check if it's an account deactivation error
+            if (ex.Message.Contains("deactivated"))
+            {
+                TempData["Error"] = ex.Message;
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+            }
         }
         catch (Exception ex)
         {
@@ -191,7 +207,10 @@ public class AuthController : BaseController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { message = ex.Message });
+            return Unauthorized(new { 
+                message = ex.Message,
+                isAccountDeactivated = ex.Message.Contains("deactivated")
+            });
         }
         catch (Exception ex)
         {

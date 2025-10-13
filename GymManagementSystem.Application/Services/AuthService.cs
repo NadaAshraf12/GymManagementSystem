@@ -54,7 +54,7 @@ public class AuthService : IAuthService
                 loginAudit.FailureReason = "Account is deactivated";
                 _context.LoginAudits.Add(loginAudit);
                 await _context.SaveChangesAsync();
-                throw new UnauthorizedAccessException("Account is deactivated");
+                throw new UnauthorizedAccessException("Your account has been deactivated. Please contact the administrator.");
             }
 
             // Generate tokens
@@ -212,6 +212,11 @@ public class AuthService : IAuthService
         }
 
         var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        if (result.Succeeded && user.MustChangePassword)
+        {
+            user.MustChangePassword = false;
+            await _userManager.UpdateAsync(user);
+        }
         return result.Succeeded;
     }
 
@@ -228,7 +233,7 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(tokenEntity.UserId);
         if (user == null || !user.IsActive)
         {
-            throw new UnauthorizedAccessException("User not found or inactive");
+            throw new UnauthorizedAccessException("Your account has been deactivated. Please contact the administrator.");
         }
 
         // Revoke the old refresh token
