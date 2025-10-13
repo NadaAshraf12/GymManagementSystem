@@ -63,7 +63,9 @@ public class MembersController : Controller
             EmailConfirmed = true
         };
 
-        var tempPassword = "Member@123"; 
+        // Use unified default password and require change on first login
+        member.MustChangePassword = true;
+        var tempPassword = "Gym@12345"; 
         var result = await _userManager.CreateAsync(member, tempPassword);
         if (result.Succeeded)
         {

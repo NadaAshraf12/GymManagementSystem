@@ -1,6 +1,7 @@
 using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,9 +11,13 @@ namespace GymManagementSystem.WebUI.Controllers;
 public class AdminTrainersController : Controller
 {
     private readonly IApplicationDbContext _db;
-    public AdminTrainersController(IApplicationDbContext db)
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
+    public AdminTrainersController(IApplicationDbContext db, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
         _db = db;
+        _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     public async Task<IActionResult> Index()
@@ -32,10 +37,41 @@ public class AdminTrainersController : Controller
     public async Task<IActionResult> Create(Trainer model)
     {
         if (!ModelState.IsValid) return View(model);
-        _db.Trainers.Add(model);
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "Trainer created";
-        return RedirectToAction(nameof(Index));
+        if (!await _roleManager.RoleExistsAsync("Trainer"))
+        {
+            await _roleManager.CreateAsync(new IdentityRole("Trainer"));
+        }
+
+        var trainer = new Trainer
+        {
+            Id = Guid.NewGuid().ToString(),
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            Email = model.Email,
+            UserName = model.Email,
+            Specialty = model.Specialty,
+            Certification = model.Certification,
+            Experience = model.Experience,
+            Salary = model.Salary,
+            BankAccount = model.BankAccount,
+            HireDate = DateTime.UtcNow,
+            MustChangePassword = true
+        };
+
+        var defaultPassword = "Gym@12345";
+        var createResult = await _userManager.CreateAsync(trainer, defaultPassword);
+        if (createResult.Succeeded)
+        {
+            await _userManager.AddToRoleAsync(trainer, "Trainer");
+            TempData["Success"] = "Trainer created";
+            return RedirectToAction(nameof(Index));
+        }
+
+        foreach (var error in createResult.Errors)
+        {
+            ModelState.AddModelError(string.Empty, error.Description);
+        }
+        return View(model);
     }
 
     [HttpGet]
