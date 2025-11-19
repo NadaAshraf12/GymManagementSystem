@@ -1,9 +1,11 @@
-@model List<GymManagementSystem.Domain.Entities.TrainerMemberAssignment>
+@using GymManagementSystem.Application.DTOs
+@model List<TrainerAssignmentDetailDto>
 @{
-    var trainer = ViewBag.Trainer as GymManagementSystem.Domain.Entities.Trainer;
+    var trainer = ViewBag.Trainer as TrainerDto ?? new TrainerDto { Id = string.Empty };
+    var assignments = Model ?? new List<TrainerAssignmentDetailDto>();
     ViewData["Title"] = "Assignments";
 }
-<h2>Assignments for @trainer?.FirstName @trainer?.LastName</h2>
+<h2>Assignments for @trainer.FirstName @trainer.LastName</h2>
 
 @if (TempData["Success"] != null)
 {
@@ -26,18 +28,18 @@
         </tr>
     </thead>
     <tbody>
-    @foreach (var a in Model)
+@foreach (var a in assignments)
     {
         <tr>
-            <td>@a.Member.MemberCode</td>
-            <td>@a.Member.FirstName @a.Member.LastName</td>
+            <td>@a.MemberCode</td>
+            <td>@a.MemberName</td>
             <td>@a.AssignedAt.ToString("yyyy-MM-dd HH:mm")</td>
             <td>@a.Notes</td>
             <td>
                 <form asp-action="RemoveMember" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="assignmentId" value="@a.Id" />
-                    <input type="hidden" name="trainerId" value="@trainer.Id" />
+                    <input type="hidden" name="trainerId" value="@(trainer.Id ?? string.Empty)" />
                     <button type="submit" class="btn btn-sm btn-danger" 
                             onclick="return confirm('Are you sure you want to remove this member from the trainer?')">
                         Remove Member
@@ -48,5 +50,8 @@
     }
     </tbody>
 </table>
-
-
+<div class="col-12 mt-3 text-center">
+    <a class="btn btn-secondary px-4" asp-controller="AdminTrainers" asp-action="Index">
+        <i class="bi bi-arrow-left"></i> Back To List
+    </a>
+</div>

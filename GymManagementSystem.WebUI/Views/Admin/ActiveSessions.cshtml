@@ -1,4 +1,5 @@
-@model IEnumerable<dynamic>
+@using GymManagementSystem.Application.DTOs
+@model IEnumerable<ActiveSessionDto>
 @{
     ViewData["Title"] = "Active Sessions";
 }
@@ -43,22 +44,15 @@
                                             <td>
                                                 @{
                                                     var duration = session.Duration;
-                                                    var hours = duration.Hours;
+                                                    var hours = (int)duration.TotalHours;
                                                     var minutes = duration.Minutes;
                                                     var seconds = duration.Seconds;
                                                 }
-                                                @if (hours > 0)
-                                                {
-                                                    <span class="badge bg-primary">@hours @minutes @seconds</span>
-                                                }
-                                                else if (minutes > 0)
-                                                {
-                                                    <span class="badge bg-success">@minutes @seconds</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning">@seconds</span>
-                                                }
+                                                <span class="badge bg-primary">
+                                                    @(hours > 0 ? $"{hours}h " : string.Empty)
+                                                    @(minutes > 0 ? $"{minutes}m " : string.Empty)
+                                                    @($"{seconds}s")
+                                                </span>
                                             </td>
                                             <td>
                                                 <small class="text-muted">

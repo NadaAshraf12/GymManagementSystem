@@ -63,9 +63,7 @@ public class AuthController : BaseController
 
             await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
 
-            // Enforce first login password change
-            var user = await _userManager.FindByIdAsync(result.UserId);
-            if (user != null && user.MustChangePassword)
+            if (result.MustChangePassword)
             {
                 TempData["Info"] = "Please change your password to continue.";
                 return RedirectToAction("ChangePassword", "Auth");

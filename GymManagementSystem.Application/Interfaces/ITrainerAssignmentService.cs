@@ -8,6 +8,7 @@ public interface ITrainerAssignmentService
     Task<bool> UnassignAsync(int assignmentId);
     Task<int> CountMembersForTrainerAsync(string trainerId);
     Task<IReadOnlyList<TrainerAssignmentDto>> GetAssignmentsForTrainerAsync(string trainerId);
+    Task<IReadOnlyList<TrainerAssignmentDetailDto>> GetAssignmentsWithMembersAsync(string trainerId);
 }
 
 

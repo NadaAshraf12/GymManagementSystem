@@ -1,3 +1,5 @@
+@using GymManagementSystem.WebUI.Models.Admin
+@model AssignTrainerViewModel
 @{
     ViewData["Title"] = "Assign Trainer";
 }
@@ -18,40 +20,35 @@
         <div class="card-body">
             <form asp-action="AssignTrainer" method="post" class="row g-3">
                 @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Trainer</label>
-                    <select name="trainerId" class="form-select" required>
+                    <select asp-for="Input.TrainerId" asp-items="Model.Trainers" class="form-select" required>
                         <option value="">-- Select Trainer --</option>
-                        @foreach (var t in (IEnumerable<GymManagementSystem.Domain.Entities.Trainer>)ViewBag.Trainers)
-                        {
-                            <option value="@t.Id">@t.FirstName @t.LastName</option>
-                        }
                     </select>
+                    <span class="text-danger" asp-validation-for="Input.TrainerId"></span>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Member</label>
-                    <select name="memberId" class="form-select" required>
+                    <select asp-for="Input.MemberId" asp-items="Model.Members" class="form-select" required>
                         <option value="">-- Select Member --</option>
-                        @foreach (var m in (IEnumerable<GymManagementSystem.Domain.Entities.Member>)ViewBag.Members)
-                        {
-                            <option value="@m.Id">@m.MemberCode - @m.FirstName @m.LastName</option>
-                        }
                     </select>
+                    <span class="text-danger" asp-validation-for="Input.MemberId"></span>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Notes</label>
-                    <input name="notes" class="form-control" placeholder="Add any notes..." />
+                    <input asp-for="Input.Notes" class="form-control" placeholder="Add any notes..." />
                 </div>
 
                 <div class="col-12 mt-3 text-center">
                     <button type="submit" class="btn btn-primary px-4 me-2">
                         <i class="bi bi-person-check"></i> Assign
                     </button>
-                    <button type="button" class="btn btn-secondary px-4" onclick="history.back()">
+                    <a class="btn btn-secondary px-4" asp-controller="AdminTrainers" asp-action="Index">
                         <i class="bi bi-arrow-left"></i> Back To List
-                    </button>
+                    </a>
                 </div>
             </form>
         </div>
@@ -59,6 +56,9 @@
 </div>
 
 @section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
     <script>
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(el => el.remove());
