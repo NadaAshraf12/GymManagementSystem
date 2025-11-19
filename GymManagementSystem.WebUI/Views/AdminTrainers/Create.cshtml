@@ -1,10 +1,12 @@
-@model GymManagementSystem.Domain.Entities.Trainer
+@using GymManagementSystem.Application.DTOs
+@model TrainerDto
 @{
     ViewData["Title"] = "Add Trainer";
 }
 <h2>Add Trainer</h2>
 
 <form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
     <div class="row g-3">
         <div class="col-md-6">
             <label class="form-label">First Name</label>
@@ -32,6 +34,10 @@
             <input asp-for="Experience" class="form-control" />
         </div>
         <div class="col-md-6">
+            <label class="form-label">Phone Number</label>
+            <input asp-for="PhoneNumber" class="form-control" />
+        </div>
+        <div class="col-md-6">
             <label class="form-label">Bank Account</label>
             <input asp-for="BankAccount" class="form-control" />
         </div>
@@ -49,3 +55,9 @@
         </div>
     </div>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

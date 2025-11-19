@@ -95,7 +95,8 @@ public class AuthService : IAuthService
                 UserId = user.Id,
                 Email = user.Email!,
                 FullName = $"{user.FirstName} {user.LastName}",
-                Role = roles.FirstOrDefault() ?? "Member"
+                Role = roles.FirstOrDefault() ?? "Member",
+                MustChangePassword = user.MustChangePassword
             };
         }
         catch (Exception)

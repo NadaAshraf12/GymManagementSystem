@@ -1,0 +1,29 @@
+using System;
+
+namespace GymManagementSystem.Application.DTOs;
+
+public class TrainerDto
+{
+    public string? Id { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string Specialty { get; set; } = string.Empty;
+    public string Certification { get; set; } = string.Empty;
+    public string Experience { get; set; } = string.Empty;
+    public decimal Salary { get; set; }
+    public string BankAccount { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
+public class TrainerAssignmentDetailDto
+{
+    public int Id { get; set; }
+    public string MemberId { get; set; } = string.Empty;
+    public string MemberCode { get; set; } = string.Empty;
+    public string MemberName { get; set; } = string.Empty;
+    public DateTime AssignedAt { get; set; }
+    public string? Notes { get; set; }
+}
+

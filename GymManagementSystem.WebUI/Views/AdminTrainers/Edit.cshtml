@@ -1,10 +1,12 @@
-@model GymManagementSystem.Domain.Entities.Trainer
+@using GymManagementSystem.Application.DTOs
+@model TrainerDto
 @{
     ViewData["Title"] = "Edit Trainer";
 }
 <h2>Edit Trainer</h2>
 
 <form asp-action="Edit" method="post">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
     <div class="row g-3">
         <div class="col-md-6">
@@ -33,6 +35,10 @@
             <input asp-for="Experience" class="form-control" />
         </div>
         <div class="col-md-6">
+            <label class="form-label">Phone Number</label>
+            <input asp-for="PhoneNumber" class="form-control" />
+        </div>
+        <div class="col-md-6">
             <label class="form-label">Bank Account</label>
             <input asp-for="BankAccount" class="form-control" />
         </div>
@@ -50,3 +56,9 @@
         </div>
     </div>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

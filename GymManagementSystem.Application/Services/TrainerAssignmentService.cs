@@ -70,6 +70,25 @@ public class TrainerAssignmentService : ITrainerAssignmentService
         return list.Select(Map).ToList();
     }
 
+    public async Task<IReadOnlyList<TrainerAssignmentDetailDto>> GetAssignmentsWithMembersAsync(string trainerId)
+    {
+        var assignments = await _db.TrainerMemberAssignments
+            .Include(a => a.Member)
+            .Where(a => a.TrainerId == trainerId)
+            .OrderByDescending(a => a.AssignedAt)
+            .ToListAsync();
+
+        return assignments.Select(a => new TrainerAssignmentDetailDto
+        {
+            Id = a.Id,
+            MemberId = a.MemberId,
+            MemberCode = a.Member?.MemberCode ?? string.Empty,
+            MemberName = a.Member != null ? $"{a.Member.FirstName} {a.Member.LastName}" : "Unknown",
+            AssignedAt = a.AssignedAt,
+            Notes = a.Notes
+        }).ToList();
+    }
+
     private static TrainerAssignmentDto Map(TrainerMemberAssignment a) => new()
     {
         Id = a.Id,
