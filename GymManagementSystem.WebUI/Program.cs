@@ -1,10 +1,10 @@
-using GymManagementSystem.Application;
+﻿using GymManagementSystem.Application;
 using GymManagementSystem.Domain.Entities;
 using GymManagementSystem.Infrastructure;
 using GymManagementSystem.Infrastructure.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer; 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens; 
+using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using GymManagementSystem.WebUI.Seeding;
 using FluentValidation.AspNetCore;
@@ -39,33 +39,34 @@ namespace GymManagementSystem.WebUI
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
             });
-            
-
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
+            // ✅ الكود المعدل - Authentication مبسط
+            builder.Services.AddAuthentication()
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings["Issuer"],
-                    ValidAudience = jwtSettings["Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
-
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtSettings["Issuer"],
+                        ValidAudience = jwtSettings["Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                })
+                .AddGoogle(options =>
+                {
+                    var googleSection = builder.Configuration.GetSection("Authentication:Google");
+                    options.ClientId = googleSection["ClientId"] ?? string.Empty;
+                    options.ClientSecret = googleSection["ClientSecret"] ?? string.Empty;
+                    options.CallbackPath = "/signin-google";
+                    options.SaveTokens = true;
+                });
 
             builder.Services.AddControllersWithViews();
 
@@ -83,7 +84,6 @@ namespace GymManagementSystem.WebUI
 
             DbSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
 
-
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
@@ -91,23 +91,16 @@ namespace GymManagementSystem.WebUI
             }
 
             app.UseSession();
-
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
             app.UseRouting();
-
             app.UseCors("AllowAll");
-
             app.UseAuthentication();
             app.UseAuthorization();
-
-            
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
-
 
             app.Run();
         }
