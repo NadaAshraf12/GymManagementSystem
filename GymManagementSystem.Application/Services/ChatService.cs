@@ -1,6 +1,7 @@
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Domain.Entities;
+using GymManagementSystem.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.Application.Services
@@ -41,7 +42,9 @@ namespace GymManagementSystem.Application.Services
                 ReceiverId = receiverId,
                 Message = message.Trim(),
                 SentAt = DateTime.UtcNow,
-                IsRead = false
+                IsRead = false,
+                Type = MessageType.Text,
+                AttachmentUrl = null
             };
 
             await _chatRepository.AddAsync(entity, cancellationToken);
@@ -57,7 +60,51 @@ namespace GymManagementSystem.Application.Services
                 Message = entity.Message,
                 SentAt = entity.SentAt,
                 IsRead = entity.IsRead,
-                SenderName = BuildDisplayName(sender)
+                SenderName = BuildDisplayName(sender),
+                Type = entity.Type,
+                AttachmentUrl = entity.AttachmentUrl
+            };
+        }
+
+        public async Task<ChatMessageDto> SendAttachmentAsync(string senderId, string receiverId, string? message, MessageType type, string attachmentUrl, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(attachmentUrl))
+            {
+                throw new ArgumentException("AttachmentUrl is required.", nameof(attachmentUrl));
+            }
+
+            if (!await CanChatAsync(senderId, receiverId, cancellationToken))
+            {
+                throw new InvalidOperationException("You are not allowed to chat with this user.");
+            }
+
+            var entity = new ChatMessage
+            {
+                SenderId = senderId,
+                ReceiverId = receiverId,
+                Message = message?.Trim() ?? string.Empty,
+                SentAt = DateTime.UtcNow,
+                IsRead = false,
+                Type = type,
+                AttachmentUrl = attachmentUrl
+            };
+
+            await _chatRepository.AddAsync(entity, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            var sender = await _db.Users.FirstOrDefaultAsync(u => u.Id == senderId, cancellationToken);
+
+            return new ChatMessageDto
+            {
+                Id = entity.Id,
+                SenderId = entity.SenderId,
+                ReceiverId = entity.ReceiverId,
+                Message = entity.Message,
+                SentAt = entity.SentAt,
+                IsRead = entity.IsRead,
+                SenderName = BuildDisplayName(sender),
+                Type = entity.Type,
+                AttachmentUrl = entity.AttachmentUrl
             };
         }
 
@@ -85,7 +132,9 @@ namespace GymManagementSystem.Application.Services
                 Message = m.Message,
                 SentAt = m.SentAt,
                 IsRead = m.IsRead,
-                SenderName = nameMap.TryGetValue(m.SenderId, out var name) ? name : string.Empty
+                SenderName = nameMap.TryGetValue(m.SenderId, out var name) ? name : string.Empty,
+                Type = m.Type,
+                AttachmentUrl = m.AttachmentUrl
             }).ToList();
         }
 
@@ -108,7 +157,9 @@ namespace GymManagementSystem.Application.Services
                 Message = m.Message,
                 SentAt = m.SentAt,
                 IsRead = m.IsRead,
-                SenderName = nameMap.TryGetValue(m.SenderId, out var name) ? name : string.Empty
+                SenderName = nameMap.TryGetValue(m.SenderId, out var name) ? name : string.Empty,
+                Type = m.Type,
+                AttachmentUrl = m.AttachmentUrl
             }).ToList();
         }
 
@@ -149,6 +200,21 @@ namespace GymManagementSystem.Application.Services
 
             await _db.SaveChangesAsync(cancellationToken);
             return messages.Select(m => m.Id).ToList();
+        }
+
+        public async Task<IReadOnlyList<string>> GetRelatedUserIdsAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            var trainerMembers = await _db.TrainerMemberAssignments
+                .Where(a => a.TrainerId == userId)
+                .Select(a => a.MemberId)
+                .ToListAsync(cancellationToken);
+
+            var memberTrainer = await _db.TrainerMemberAssignments
+                .Where(a => a.MemberId == userId)
+                .Select(a => a.TrainerId)
+                .ToListAsync(cancellationToken);
+
+            return trainerMembers.Concat(memberTrainer).Distinct().ToList();
         }
 
         public async Task<IReadOnlyList<ChatConversationDto>> GetConversationsAsync(string userId, CancellationToken cancellationToken = default)
