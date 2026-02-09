@@ -24,6 +24,7 @@ namespace GymManagementSystem.Infrastructure.Data
         public DbSet<TrainerMemberAssignment> TrainerMemberAssignments { get; set; }
         public DbSet<LoginAudit> LoginAudits { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -170,6 +171,25 @@ namespace GymManagementSystem.Infrastructure.Data
                 entity.Property(rt => rt.Token).IsRequired().HasMaxLength(500);
                 entity.Property(rt => rt.IpAddress).HasMaxLength(45);
                 entity.Property(rt => rt.UserAgent).HasMaxLength(500);
+            });
+
+            builder.Entity<ChatMessage>(entity =>
+            {
+                entity.Property(m => m.Message).IsRequired().HasMaxLength(2000);
+                entity.Property(m => m.SentAt).IsRequired();
+
+                entity.HasIndex(m => new { m.SenderId, m.ReceiverId, m.SentAt });
+                entity.HasIndex(m => new { m.ReceiverId, m.IsRead });
+
+                entity.HasOne(m => m.Sender)
+                    .WithMany()
+                    .HasForeignKey(m => m.SenderId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(m => m.Receiver)
+                    .WithMany()
+                    .HasForeignKey(m => m.ReceiverId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

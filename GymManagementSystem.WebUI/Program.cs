@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using GymManagementSystem.WebUI.Seeding;
 using FluentValidation.AspNetCore;
+using GymManagementSystem.WebUI.Hubs;
 
 namespace GymManagementSystem.WebUI
 {
@@ -69,6 +70,7 @@ namespace GymManagementSystem.WebUI
                 });
 
             builder.Services.AddControllersWithViews();
+            builder.Services.AddSignalR();
 
             builder.Services.AddCors(options =>
             {
@@ -101,6 +103,8 @@ namespace GymManagementSystem.WebUI
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            app.MapHub<ChatHub>("/hubs/chat");
 
             app.Run();
         }

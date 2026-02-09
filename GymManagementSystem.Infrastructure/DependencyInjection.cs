@@ -18,6 +18,7 @@ namespace GymManagementSystem.Infrastructure
 
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IChatRepository, ChatRepository>();
 
             return services;
         }

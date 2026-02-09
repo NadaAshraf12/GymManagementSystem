@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<ITrainingPlanService, TrainingPlanService>();
         services.AddScoped<INutritionPlanService, NutritionPlanService>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IChatService, ChatService>();
 
         services.Configure<JwtSettings>(options =>
         {

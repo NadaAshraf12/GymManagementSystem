@@ -1,0 +1,461 @@
+@model GymManagementSystem.WebUI.Models.ChatIndexViewModel
+
+@{
+    ViewData["Title"] = "Chat";
+}
+
+<div class="chat-page" data-current-user-id="@Model.CurrentUserId">
+    <input type="hidden" id="currentUserId" value="@Model.CurrentUserId" />
+
+    <div class="chat-container">
+        <aside class="chat-sidebar">
+            <div class="chat-sidebar-header">Conversations</div>
+            <ul id="conversationList" class="conversation-list">
+                @if (Model.Conversations.Count == 0)
+                {
+                    <li class="conversation-empty">No assigned conversations yet.</li>
+                }
+                else
+                {
+                    foreach (var c in Model.Conversations)
+                    {
+                        <li class="conversation-item" data-user-id="@c.UserId" data-display-name="@c.DisplayName">
+                            <div class="conversation-row">
+                                <div class="conversation-name">@c.DisplayName</div>
+                                <div class="conversation-time">@(c.LastMessageAt?.ToLocalTime().ToString("g") ?? string.Empty)</div>
+                            </div>
+                            <div class="conversation-row">
+                                <div class="conversation-last">@c.LastMessage</div>
+                                <span class="conversation-badge" style="@(c.UnreadCount > 0 ? "" : "display:none")">@c.UnreadCount</span>
+                            </div>
+                        </li>
+                    }
+                }
+            </ul>
+        </aside>
+
+        <section class="chat-main">
+            <div class="chat-header">
+                <span id="chatHeaderText">Select a conversation</span>
+                <button type="button" class="btn btn-sm btn-secondary" data-theme-toggle>Dark Mode</button>
+            </div>
+            <div id="messageList" class="message-list"></div>
+            <form id="sendForm" class="chat-input">
+                <input id="messageInput" type="text" placeholder="Type a message..." autocomplete="off" />
+                <button id="sendButton" type="submit">Send</button>
+            </form>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+        const currentUserId = document.getElementById("currentUserId").value;
+        const conversationList = document.getElementById("conversationList");
+        const messageList = document.getElementById("messageList");
+        const chatHeader = document.getElementById("chatHeaderText");
+        const messageInput = document.getElementById("messageInput");
+        const sendForm = document.getElementById("sendForm");
+
+        let currentPeerId = null;
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/chat")
+            .withAutomaticReconnect()
+            .build();
+
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            if (Number.isNaN(date.getTime())) return "";
+            return date.toLocaleString();
+        }
+
+        function clearMessages() {
+            messageList.innerHTML = "";
+        }
+
+        function renderMessage(msg) {
+            const isMe = msg.senderId === currentUserId;
+            const wrapper = document.createElement("div");
+            wrapper.className = "message " + (isMe ? "me" : "them");
+            wrapper.dataset.messageId = msg.id;
+
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            bubble.textContent = msg.message;
+
+            const meta = document.createElement("div");
+            meta.className = "meta";
+            const senderLabel = isMe ? "You" : (msg.senderName || "Sender");
+            let readLabel = "";
+            if (isMe) {
+                readLabel = msg.isRead ? "Read" : "Unread";
+            }            meta.textContent = `${senderLabel} ? ${formatTime(msg.sentAt)}${readLabel ? " ? " + readLabel : ""}`;
+
+            wrapper.appendChild(bubble);
+            wrapper.appendChild(meta);
+            messageList.appendChild(wrapper);
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        function markMessagesRead(messageIds) {
+            if (!Array.isArray(messageIds)) return;
+            messageIds.forEach(id => {
+                const node = messageList.querySelector(`[data-message-id='${id}']`);
+                if (!node) return;
+                node.dataset.isRead = "true";
+                const meta = node.querySelector(".meta");
+                if (!meta) return;
+                const parts = meta.textContent.split(" ? " ).filter(p => p && p !== "Read" && p !== "Unread");
+                meta.textContent = parts.join(" ? " ) + " ? Read";
+            });
+        }
+
+        function updateConversationPreview(peerId, message, sentAt) {
+            const item = conversationList.querySelector(`[data-user-id='${peerId}']`);
+            if (!item) return;
+            const last = item.querySelector(".conversation-last");
+            const time = item.querySelector(".conversation-time");
+            if (last) last.textContent = message;
+            if (time) time.textContent = formatTime(sentAt);
+        }
+
+        function incrementBadge(peerId) {
+            const item = conversationList.querySelector(`[data-user-id='${peerId}']`);
+            if (!item) return;
+            const badge = item.querySelector(".conversation-badge");
+            if (!badge) return;
+            const current = parseInt(badge.textContent || "0", 10) || 0;
+            badge.textContent = current + 1;
+            badge.style.display = "inline-flex";
+        }
+
+        function clearBadge(peerId) {
+            const item = conversationList.querySelector(`[data-user-id='${peerId}']`);
+            if (!item) return;
+            const badge = item.querySelector(".conversation-badge");
+            if (!badge) return;
+            badge.textContent = "0";
+            badge.style.display = "none";
+        }
+
+        async function loadHistory(peerId) {
+            if (!peerId) return;
+            try {
+                const history = await connection.invoke("GetChatHistory", peerId);
+                clearMessages();
+                history.forEach(renderMessage);
+                clearBadge(peerId);
+
+                history
+                    .filter(m => m.receiverId === currentUserId && !m.isRead)
+                    .forEach(m => connection.invoke("MarkAsRead", m.id));
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function setActiveConversation(item) {
+            const items = conversationList.querySelectorAll(".conversation-item");
+            items.forEach(i => i.classList.remove("active"));
+            item.classList.add("active");
+
+            currentPeerId = item.getAttribute("data-user-id");
+            const displayName = item.getAttribute("data-display-name") || "Chat";
+            chatHeader.textContent = displayName;
+            messageInput.disabled = false;
+            loadHistory(currentPeerId);
+            connection.invoke("OpenConversation", currentPeerId).catch(err => console.error(err));
+        }
+
+        conversationList.addEventListener("click", (e) => {
+            const item = e.target.closest(".conversation-item");
+            if (item) {
+                setActiveConversation(item);
+            }
+        });
+
+        sendForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text || !currentPeerId) return;
+            try {
+                await connection.invoke("SendMessage", currentPeerId, text);
+                messageInput.value = "";
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        connection.on("ReceiveMessage", (msg) => {
+            const peerId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId;
+            updateConversationPreview(peerId, msg.message, msg.sentAt);
+
+            if (peerId === currentPeerId) {
+                renderMessage(msg);
+            } else if (msg.receiverId === currentUserId) {
+                incrementBadge(peerId);
+            }
+
+            if (msg.receiverId === currentUserId) {
+                playNotificationSound();
+            }
+        });
+
+
+        const chatNotifyAudio = new Audio('/sounds/chat.mp3');
+        chatNotifyAudio.preload = 'auto';
+        chatNotifyAudio.volume = 0.6;
+
+        function unlockAudio() {
+            chatNotifyAudio.play().then(() => {
+                chatNotifyAudio.pause();
+                chatNotifyAudio.currentTime = 0;
+            }).catch(() => {
+                // Ignore autoplay restrictions
+            });
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+        }
+
+        document.addEventListener('click', unlockAudio, { once: true });
+        document.addEventListener('keydown', unlockAudio, { once: true });
+
+        function playNotificationSound() {
+            chatNotifyAudio.currentTime = 0;
+            chatNotifyAudio.play().catch(() => { });
+        }
+
+        connection.on("ReceiveUnreadMessages", (messages) => {
+            messages.forEach((msg) => {
+                const peerId = msg.senderId;
+                updateConversationPreview(peerId, msg.message, msg.sentAt);
+
+                if (peerId === currentPeerId) {
+                    renderMessage(msg);
+                } else {
+                    incrementBadge(peerId);
+                }
+            });
+        });
+
+        connection.on("MessageRead", (payload) => {
+            if (!payload || !payload.messageIds) return;
+            markMessagesRead(payload.messageIds);
+        });
+
+        connection.start().then(() => {
+            const firstItem = conversationList.querySelector(".conversation-item");
+            if (firstItem) {
+                setActiveConversation(firstItem);
+            } else {
+                messageInput.disabled = true;
+            }
+        }).catch(err => console.error(err));
+    </script>
+}
+
+<style>
+    .chat-page {
+        padding: 1rem 0;
+        color: var(--text-color);
+        background: var(--chat-bg);
+    }
+
+    .chat-container {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1rem;
+        min-height: 70vh;
+    }
+
+    .chat-sidebar {
+        background: var(--chat-surface-alt);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid var(--chat-border);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .chat-sidebar-header {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .conversation-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .conversation-item {
+        background: var(--chat-surface);
+        border: 1px solid var(--chat-border);
+        border-radius: 10px;
+        padding: 0.6rem 0.75rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .conversation-item.active {
+        border-color: var(--bubble-sender);
+        box-shadow: 0 0 0 2px rgba(58, 110, 165, 0.15);
+    }
+
+    .conversation-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .conversation-name {
+        font-weight: 600;
+    }
+
+    .conversation-last {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+
+    .conversation-time {
+        font-size: 0.75rem;
+        color: var(--text-muted-2);
+    }
+
+    .conversation-badge {
+        background: var(--badge-bg);
+        color: var(--badge-text);
+        border-radius: 999px;
+        padding: 0 0.45rem;
+        font-size: 0.75rem;
+        min-width: 1.25rem;
+        height: 1.25rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .conversation-empty {
+        color: var(--text-muted);
+        text-align: center;
+        padding: 1rem 0;
+    }
+
+    .chat-main {
+        background: var(--chat-surface);
+        border-radius: 12px;
+        border: 1px solid var(--chat-border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-header {
+        padding: 0.85rem 1rem;
+        font-weight: 700;
+        border-bottom: 1px solid var(--chat-border);
+        background: var(--chat-surface-alt);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .message-list {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        background: var(--chat-surface-alt);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .message {
+        display: flex;
+        flex-direction: column;
+        max-width: 70%;
+    }
+
+    .message.me {
+        align-self: flex-end;
+        text-align: right;
+    }
+
+    .message.them {
+        align-self: flex-start;
+        text-align: left;
+    }
+
+    .bubble {
+        padding: 0.6rem 0.8rem;
+        border-radius: 14px;
+        background: var(--bubble-receiver);
+        color: var(--text-color);
+        white-space: pre-wrap;
+    }
+
+    .message.me .bubble {
+        background: var(--bubble-sender);
+        color: var(--badge-text);
+    }
+
+    .meta {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    .chat-input {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-top: 1px solid var(--chat-border);
+        background: var(--chat-surface);
+    }
+
+    #messageInput {
+        flex: 1;
+        border-radius: 999px;
+        border: 1px solid var(--input-border);
+        background: var(--input-bg);
+        color: var(--text-color);
+        padding: 0.5rem 0.9rem;
+    }
+
+    #sendButton {
+        border: none;
+        background: var(--bubble-sender);
+        color: var(--badge-text);
+        padding: 0.5rem 1.1rem;
+        border-radius: 999px;
+    }
+
+    #sendButton:hover {
+        background: #2f5c8b;
+    }
+
+    @@media (max-width: 900px) {
+        .chat-container {
+            grid-template-columns: 1fr;
+        }
+
+        .conversation-last {
+            max-width: 100%;
+        }
+    }
+</style>
