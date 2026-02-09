@@ -177,6 +177,7 @@ namespace GymManagementSystem.Infrastructure.Data
             {
                 entity.Property(m => m.Message).IsRequired().HasMaxLength(2000);
                 entity.Property(m => m.SentAt).IsRequired();
+                entity.Property(m => m.AttachmentUrl).HasMaxLength(500);
 
                 entity.HasIndex(m => new { m.SenderId, m.ReceiverId, m.SentAt });
                 entity.HasIndex(m => new { m.ReceiverId, m.IsRead });

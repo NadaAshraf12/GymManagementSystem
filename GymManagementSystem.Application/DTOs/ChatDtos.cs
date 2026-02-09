@@ -1,4 +1,5 @@
 using System;
+using GymManagementSystem.Domain.Enums;
 
 namespace GymManagementSystem.Application.DTOs
 {
@@ -11,6 +12,8 @@ namespace GymManagementSystem.Application.DTOs
         public DateTime SentAt { get; set; }
         public bool IsRead { get; set; }
         public string SenderName { get; set; } = string.Empty;
+        public MessageType Type { get; set; }
+        public string? AttachmentUrl { get; set; }
     }
 
     public class ChatConversationDto

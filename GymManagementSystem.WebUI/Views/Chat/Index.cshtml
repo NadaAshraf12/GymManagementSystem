@@ -6,6 +6,7 @@
 
 <div class="chat-page" data-current-user-id="@Model.CurrentUserId">
     <input type="hidden" id="currentUserId" value="@Model.CurrentUserId" />
+    @Html.AntiForgeryToken()
 
     <div class="chat-container">
         <aside class="chat-sidebar">
@@ -21,9 +22,10 @@
                     {
                         <li class="conversation-item" data-user-id="@c.UserId" data-display-name="@c.DisplayName">
                             <div class="conversation-row">
-                                <div class="conversation-name">@c.DisplayName</div>
+                                <div class="conversation-name"><span class="status-dot offline" data-status-dot></span><span class="name-text">@c.DisplayName</span></div>
                                 <div class="conversation-time">@(c.LastMessageAt?.ToLocalTime().ToString("g") ?? string.Empty)</div>
                             </div>
+                            <div class="conversation-status" data-last-seen></div>
                             <div class="conversation-row">
                                 <div class="conversation-last">@c.LastMessage</div>
                                 <span class="conversation-badge" style="@(c.UnreadCount > 0 ? "" : "display:none")">@c.UnreadCount</span>
@@ -39,9 +41,12 @@
                 <span id="chatHeaderText">Select a conversation</span>
                 <button type="button" class="btn btn-sm btn-secondary" data-theme-toggle>Dark Mode</button>
             </div>
+            <div id="typingIndicator" class="typing-indicator"></div>
             <div id="messageList" class="message-list"></div>
             <form id="sendForm" class="chat-input">
                 <input id="messageInput" type="text" placeholder="Type a message..." autocomplete="off" />
+                <input id="fileInput" type="file" accept=".jpg,.jpeg,.png,.pdf" hidden />
+                <button id="uploadButton" type="button" title="Upload"><i class="fas fa-paperclip"></i></button>
                 <button id="sendButton" type="submit">Send</button>
             </form>
         </section>
@@ -57,6 +62,10 @@
         const chatHeader = document.getElementById("chatHeaderText");
         const messageInput = document.getElementById("messageInput");
         const sendForm = document.getElementById("sendForm");
+        const fileInput = document.getElementById("fileInput");
+        const uploadButton = document.getElementById("uploadButton");
+        const typingIndicator = document.getElementById("typingIndicator");
+        const antiForgeryToken = document.querySelector("input[name='__RequestVerificationToken']").value;
 
         let currentPeerId = null;
 
@@ -75,6 +84,42 @@
             messageList.innerHTML = "";
         }
 
+
+        function updateUserStatus(userId, isOnline, lastSeen) {
+            const item = conversationList.querySelector(`[data-user-id='${userId}']`);
+            if (!item) return;
+            const dot = item.querySelector("[data-status-dot]");
+            const lastSeenEl = item.querySelector("[data-last-seen]");
+            if (dot) {
+                dot.classList.toggle("online", !!isOnline);
+                dot.classList.toggle("offline", !isOnline);
+            }
+            if (lastSeenEl) {
+                if (isOnline) {
+                    lastSeenEl.textContent = "";
+                } else if (lastSeen) {
+                    lastSeenEl.textContent = `Last seen: ${formatTime(lastSeen)}`;
+                } else {
+                    lastSeenEl.textContent = "Last seen: unknown";
+                }
+            }
+        }
+
+        let typingTimeout = null;
+        let typingDebounce = null;
+        function showTyping(senderId) {
+            if (senderId !== currentPeerId) return;
+            const item = conversationList.querySelector(`[data-user-id='${senderId}']`);
+            const name = item ? (item.getAttribute("data-display-name") || "User") : "User";
+            typingIndicator.textContent = `${name} is typing...`;
+            typingIndicator.style.display = "block";
+            if (typingTimeout) clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                typingIndicator.textContent = "";
+                typingIndicator.style.display = "none";
+            }, 2000);
+        }
+
         function renderMessage(msg) {
             const isMe = msg.senderId === currentUserId;
             const wrapper = document.createElement("div");
@@ -83,7 +128,31 @@
 
             const bubble = document.createElement("div");
             bubble.className = "bubble";
-            bubble.textContent = msg.message;
+
+            if (msg.type === 1 && msg.attachmentUrl) {
+                const img = document.createElement("img");
+                img.src = msg.attachmentUrl;
+                img.alt = "attachment";
+                img.className = "image-attachment";
+                bubble.appendChild(img);
+            } else if (msg.type === 2 && msg.attachmentUrl) {
+                const link = document.createElement("a");
+                link.href = msg.attachmentUrl;
+                link.textContent = "Download file";
+                link.target = "_blank";
+                link.rel = "noopener";
+                link.className = "file-attachment";
+                bubble.appendChild(link);
+            } else {
+                bubble.textContent = msg.message;
+            }
+
+            if (msg.message && msg.type !== 0) {
+                const caption = document.createElement("div");
+                caption.className = "attachment-caption";
+                caption.textContent = msg.message;
+                bubble.appendChild(caption);
+            }
 
             const meta = document.createElement("div");
             meta.className = "meta";
@@ -107,8 +176,8 @@
                 node.dataset.isRead = "true";
                 const meta = node.querySelector(".meta");
                 if (!meta) return;
-                const parts = meta.textContent.split(" ? " ).filter(p => p && p !== "Read" && p !== "Unread");
-                meta.textContent = parts.join(" ? " ) + " ? Read";
+                const parts = meta.textContent.split(" ? ").filter(p => p && p !== "Read" && p !== "Unread");
+                meta.textContent = parts.join(" ? ") + " ? Read";
             });
         }
 
@@ -173,6 +242,52 @@
             const item = e.target.closest(".conversation-item");
             if (item) {
                 setActiveConversation(item);
+            }
+        });
+
+        messageInput.addEventListener("input", () => {
+            if (!currentPeerId) return;
+            if (typingDebounce) clearTimeout(typingDebounce);
+            typingDebounce = setTimeout(() => {
+                connection.invoke("UserTyping", currentPeerId).catch(err => console.error(err));
+            }, 200);
+        });
+
+
+        uploadButton.addEventListener("click", () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener("change", async () => {
+            if (!currentPeerId) return;
+            if (!fileInput.files || fileInput.files.length === 0) return;
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const res = await fetch("/Chat/Upload", {
+                    method: "POST",
+                    headers: { "RequestVerificationToken": antiForgeryToken },
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    console.error("Upload failed");
+                    return;
+                }
+
+                const data = await res.json();
+                const url = data.url;
+                const ext = (file.name.split('.').pop() || "").toLowerCase();
+                const type = (ext === "jpg" || ext === "jpeg" || ext === "png") ? 1 : 2;
+                const caption = messageInput.value.trim();
+
+                await connection.invoke("SendAttachment", currentPeerId, caption, type, url);
+                messageInput.value = "";
+                fileInput.value = "";
+            } catch (err) {
+                console.error(err);
             }
         });
 
@@ -245,7 +360,27 @@
             markMessagesRead(payload.messageIds);
         });
 
-        connection.start().then(() => {
+        connection.on("UserStatusChanged", (payload) => {
+            if (!payload) return;
+            updateUserStatus(payload.userId, payload.isOnline, payload.lastSeen);
+        });
+
+        connection.on("UserTyping", (payload) => {
+            if (!payload) return;
+            showTyping(payload.senderId);
+        });
+
+        connection.start().then(async () => {
+            const items = conversationList.querySelectorAll(".conversation-item");
+            for (const item of items) {
+                const userId = item.getAttribute("data-user-id");
+                if (!userId) continue;
+                try {
+                    const status = await connection.invoke("GetOnlineStatus", userId);
+                    updateUserStatus(status.userId, status.isOnline, status.lastSeen);
+                } catch (e) { }
+            }
+
             const firstItem = conversationList.querySelector(".conversation-item");
             if (firstItem) {
                 setActiveConversation(firstItem);
@@ -320,6 +455,31 @@
 
     .conversation-name {
         font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        background: #aaa;
+    }
+
+    .status-dot.online {
+        background: #1db954;
+    }
+
+    .status-dot.offline {
+        background: #9a9a9a;
+    }
+
+    .conversation-status {
+        font-size: 0.75rem;
+        color: var(--text-muted-2);
+        margin-top: -0.2rem;
     }
 
     .conversation-last {
@@ -375,6 +535,13 @@
         gap: 0.5rem;
     }
 
+    .typing-indicator {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        padding: 0.3rem 1rem;
+        display: none;
+    }
+
     .message-list {
         flex: 1;
         padding: 1rem;
@@ -409,6 +576,23 @@
         white-space: pre-wrap;
     }
 
+    .image-attachment {
+        max-width: 220px;
+        border-radius: 10px;
+        display: block;
+    }
+
+    .file-attachment {
+        color: inherit;
+        text-decoration: underline;
+        font-weight: 600;
+    }
+
+    .attachment-caption {
+        margin-top: 0.35rem;
+        font-size: 0.85rem;
+    }
+
     .message.me .bubble {
         background: var(--bubble-sender);
         color: var(--badge-text);
@@ -435,6 +619,18 @@
         background: var(--input-bg);
         color: var(--text-color);
         padding: 0.5rem 0.9rem;
+    }
+
+    #uploadButton {
+        border: 1px solid var(--input-border);
+        background: var(--chat-surface);
+        color: var(--text-color);
+        padding: 0.5rem 0.75rem;
+        border-radius: 999px;
+    }
+
+    #uploadButton:hover {
+        background: var(--chat-surface-alt);
     }
 
     #sendButton {
