@@ -1,4 +1,4 @@
-﻿using GymManagementSystem.Domain.Entities;
+using GymManagementSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.Application.Interfaces
@@ -22,6 +22,7 @@ namespace GymManagementSystem.Application.Interfaces
         DbSet<TrainerMemberAssignment> TrainerMemberAssignments { get; }
         DbSet<LoginAudit> LoginAudits { get; }
         DbSet<RefreshToken> RefreshTokens { get; }
+        DbSet<ChatMessage> ChatMessages { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

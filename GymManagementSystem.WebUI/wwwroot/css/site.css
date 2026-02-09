@@ -21,6 +21,44 @@ body {
   margin-bottom: 60px;
 }
 
+:root {
+  --chat-bg: #ffffff;
+  --chat-surface: #ffffff;
+  --chat-surface-alt: #f7f7f7;
+  --chat-border: #e3e3e3;
+  --bubble-sender: #3a6ea5;
+  --bubble-receiver: #e5ecf6;
+  --text-color: #1c2b3a;
+  --text-muted: #777777;
+  --text-muted-2: #888888;
+  --input-bg: #ffffff;
+  --input-border: #d7d7d7;
+  --badge-bg: #d64545;
+  --badge-text: #ffffff;
+}
+
+html.dark,
+body.dark {
+  --chat-bg: #1e1e1e;
+  --chat-surface: #1f1f1f;
+  --chat-surface-alt: #2a2a2a;
+  --chat-border: #333333;
+  --bubble-sender: #2b5278;
+  --bubble-receiver: #2a2a2a;
+  --text-color: #ffffff;
+  --text-muted: #b4b4b4;
+  --text-muted-2: #9a9a9a;
+  --input-bg: #2a2a2a;
+  --input-border: #3b3b3b;
+  --badge-bg: #c13f3f;
+  --badge-text: #ffffff;
+}
+
+body {
+  color: var(--text-color);
+  background-color: var(--chat-bg);
+}
+
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;
