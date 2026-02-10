@@ -11,10 +11,13 @@ namespace GymManagementSystem.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<ApplicationDbContext>(options =>
+            services.AddScoped<AuditSaveChangesInterceptor>();
+
+            services.AddDbContext<ApplicationDbContext>((sp, options) =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName))
+                .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddScoped<IUnitOfWork, UnitOfWork>();

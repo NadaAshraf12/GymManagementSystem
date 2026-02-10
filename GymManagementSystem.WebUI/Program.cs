@@ -1,14 +1,22 @@
 ﻿using GymManagementSystem.Application;
+using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Domain.Entities;
 using GymManagementSystem.Infrastructure;
 using GymManagementSystem.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using GymManagementSystem.WebUI.Seeding;
 using FluentValidation.AspNetCore;
 using GymManagementSystem.WebUI.Hubs;
+using GymManagementSystem.WebUI.Middleware;
+using Serilog;
+using System.Security.Claims;
+using GymManagementSystem.WebUI.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GymManagementSystem.WebUI
 {
@@ -18,8 +26,34 @@ namespace GymManagementSystem.WebUI
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Host.UseSerilog((context, services, loggerConfig) =>
+            {
+                loggerConfig
+                    .ReadFrom.Configuration(context.Configuration)
+                    .ReadFrom.Services(services)
+                    .Enrich.FromLogContext();
+
+                var seqUrl = Environment.GetEnvironmentVariable("SEQ_URL");
+                if (!string.IsNullOrWhiteSpace(seqUrl))
+                {
+                    loggerConfig.WriteTo.Seq(seqUrl);
+                }
+
+                var logFilePath = Environment.GetEnvironmentVariable("LOG_FILE_PATH");
+                if (!string.IsNullOrWhiteSpace(logFilePath))
+                {
+                    loggerConfig.WriteTo.File(
+                        logFilePath,
+                        rollingInterval: RollingInterval.Day,
+                        retainedFileCountLimit: 14);
+                }
+            });
+
             builder.Services.AddApplication(builder.Configuration);
             builder.Services.AddInfrastructure(builder.Configuration);
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<GymManagementSystem.Application.Interfaces.ICurrentUserService, GymManagementSystem.WebUI.Services.CurrentUserService>();
+            builder.Services.AddScoped<GymManagementSystem.Application.Interfaces.IAppAuthorizationService, GymManagementSystem.WebUI.Services.AppAuthorizationService>();
 
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
@@ -69,7 +103,24 @@ namespace GymManagementSystem.WebUI
                     options.SaveTokens = true;
                 });
 
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllersWithViews()
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var errors = context.ModelState.Values
+                            .SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                            .ToList();
+
+                        var response = ApiResponse<object>.Fail(
+                            "Validation failed.",
+                            StatusCodes.Status400BadRequest,
+                            errors);
+
+                        return new BadRequestObjectResult(response);
+                    };
+                });
             builder.Services.AddSignalR();
 
             builder.Services.AddCors(options =>
@@ -81,6 +132,16 @@ namespace GymManagementSystem.WebUI
                           .AllowAnyHeader();
                 });
             });
+
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("AdminFullAccess", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("TrainerOwnsResource", policy => policy.RequireRole("Trainer", "Admin"));
+                options.AddPolicy("MemberReadOnly", policy => policy.RequireRole("Member", "Admin"));
+                options.AddPolicy("SessionBookingAccess", policy =>
+                    policy.Requirements.Add(new SessionBookingAccessRequirement()));
+            });
+            builder.Services.AddScoped<IAuthorizationHandler, SessionBookingAccessHandler>();
 
             var app = builder.Build();
 
@@ -95,11 +156,26 @@ namespace GymManagementSystem.WebUI
             app.UseSession();
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseMiddleware<CorrelationIdMiddleware>();
+            app.UseMiddleware<ApiExceptionHandlingMiddleware>();
+            app.UseSerilogRequestLogging(options =>
+            {
+                options.EnrichDiagnosticContext = (diagContext, httpContext) =>
+                {
+                    var userId = httpContext.User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "anonymous";
+                    var correlationId = httpContext.Items[CorrelationIdMiddleware.HeaderName]?.ToString();
+                    diagContext.Set("CorrelationId", correlationId ?? string.Empty);
+                    diagContext.Set("UserId", userId);
+                    diagContext.Set("Endpoint", httpContext.Request.Path);
+                    diagContext.Set("StatusCode", httpContext.Response.StatusCode);
+                };
+            });
             app.UseRouting();
             app.UseCors("AllowAll");
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.MapControllers();
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");

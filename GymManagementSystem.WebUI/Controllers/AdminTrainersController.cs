@@ -26,12 +26,12 @@ public class AdminTrainersController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        return View(new TrainerDto());
+        return View(new CreateTrainerDto());
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(TrainerDto model)
+    public async Task<IActionResult> Create(CreateTrainerDto model)
     {
         if (!ModelState.IsValid) return View(model);
 
@@ -56,7 +56,7 @@ public class AdminTrainersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(string id, TrainerDto model)
+    public async Task<IActionResult> Edit(string id, UpdateTrainerDto model)
     {
         if (id != model.Id) return BadRequest();
         if (!ModelState.IsValid) return View(model);

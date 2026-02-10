@@ -1,70 +1,142 @@
-# 🏋️‍♂️ Gym Management System
+# 🏋️ Gym Management System
 
-A web-based application built with **ASP.NET Core MVC** using **Clean Architecture** to manage gym operations such as members, attendance, and payments.
+A full-featured Hybrid ASP.NET Core MVC + REST API application built
+using Clean Architecture to manage gym operations including members,
+trainers, training & nutrition plans, sessions, chat, and payments. This
+project is designed with real-world software engineering practices
+focusing on security, scalability, maintainability, and testability.
 
----
+## 📖 Overview
 
-## 📖 About the Project
-This system helps gym administrators, trainers, and members to efficiently manage their daily operations.  
-It provides role-based access to ensure each user only sees what’s relevant to them.
-
----
+The system provides a complete platform for gyms to manage their daily
+operations with role-based access control, modular layered architecture,
+DTO-first design with no domain entity exposure, auditing & structured
+logging, and integration testing for critical business flows. The
+application is hybrid where MVC is used for the user interface and REST
+API is used for core business operations.
 
 ## 🚀 Features
-- 👥 **Members Management** – Add, edit, and manage gym members.
-- 📅 **Attendance Tracking** – Track member check-ins and check-outs.
-- 💳 **Payments Management** – Handle membership payments and renewals.
-- 🔐 **Authentication & Authorization** – Secure login with role-based access (Admin, Trainer, Member).
-- 📊 **Dashboard** – Overview of gym statistics.
 
----
+### Core Modules
 
-## 🛠️ Tech Stack
-- **ASP.NET Core MVC**  
-- **Entity Framework Core**  
-- **Identity for Authentication & Authorization**  
-- **SQL Server**  
-- **Bootstrap 5** for UI  
+-   Members Management -- create, update, manage members\
+-   Trainer Management & Assignments\
+-   Training Plans -- workout programs\
+-   Nutrition Plans -- diet management\
+-   Sessions & Booking -- scheduling and attendance\
+-   Chat System -- member ↔ trainer communication\
+-   Payments & Memberships
 
----
+### Security & Authorization
+
+Policy-based authorization implemented: - AdminFullAccess -- full
+control\
+- TrainerOwnsResource -- trainer can manage assigned members\
+- MemberReadOnly -- limited member access\
+- SessionBookingAccess -- rules for booking/cancel\
+Authentication via ASP.NET Core Identity.
+
+### Quality & Design
+
+-   Clean Architecture separation\
+-   DTO Mapping using Mapster\
+-   UnitOfWork + Repository pattern\
+-   Global Exception Handling → unified ApiResponse`<T>`{=html}\
+-   Auditing System (old/new values, user, timestamp)\
+-   Serilog + Seq Logging with CorrelationId\
+-   Integration Tests for main flows\
+-   No domain entity returned from controllers
+
+## 🛠 Tech Stack
+
+-   .NET 9 -- ASP.NET Core MVC + API\
+-   Entity Framework Core (SQL Server)\
+-   ASP.NET Core Identity\
+-   Mapster\
+-   FluentValidation\
+-   Serilog + Seq\
+-   xUnit\
+-   Bootstrap 5
+
+## 🧱 Architecture
+
+WebUI (MVC + API)\
+→ Application Layer (Services, DTOs, Policies, Validation)\
+→ Infrastructure Layer (EF Core, Repositories, Auditing)\
+→ Domain Layer (Entities, Business Rules)
+
+### Request Flow
+
+HTTP Request → Controller → Authorization Policy → Application Service →
+UnitOfWork / Repository → Database → Auditing → Logging →
+ApiResponse`<T>`{=html}
+
+## 📌 API Standard Response
+
+{ "success": true, "message": "Operation completed successfully",
+"data": {}, "errors": null, "statusCode": 200, "correlationId":
+"a12b-34cd" }
 
 ## ⚙️ Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/NadaAshraf12/GymManagementSystem.git
+### 1) Prerequisites
 
-2. Navigate to the project folder:
+-   .NET SDK 9\
+-   SQL Server\
+-   (Optional) Docker for Seq
 
-   ```bash
-   cd GymManagementSystem
-   ```
+### 2) Environment Variables
 
-3. Update the database (apply migrations):
+SEQ_URL=http://localhost:5341\
+LOG_FILE_PATH=logs/gym-management-.log
 
-   ```bash
-   dotnet ef database update
-   ```
+### 3) Database Setup
 
-4. Run the project:
+Migrations are required:\
+dotnet ef database update --project GymManagementSystem.Infrastructure\
+Optional seed data via DbSeeder.cs.
 
-   ```bash
-   dotnet run
-   ```
+## ▶ Run Project
 
----
+dotnet run --project GymManagementSystem.WebUI\
+Open: /swagger
+
+## 🧪 Testing
+
+dotnet test
+
+### Covered Integration Flows
+
+-   TrainingPlan → create → update → read → audit → unauthorized\
+-   NutritionPlan → create → update → read → audit → unauthorized
+
+## 🔐 Roles
+
+-   Admin -- full system access\
+-   Trainer -- manage assigned members and plans\
+-   Member -- view plans & book sessions
+
+## 📝 Auditing
+
+Tracks entity name, old values, new values, user, and timestamp.
+
+## 📊 Logging
+
+Serilog, Seq, CorrelationId, and global exception logging.
 
 ## 💻 Usage
 
-* **Admin** can manage members, payments, and attendance.
-* **Trainers** can track attendance.
-* **Members** can view their attendance and payment history.
-
----
+Admin dashboard, trainer panel, member portal, and API endpoints.
 
 ## 🤝 Contributing
 
-Contributions are welcome!
-Feel free to fork the repo and submit a pull request.
+1.  Fork repository\
+2.  Create feature branch\
+3.  Commit clearly\
+4.  Submit pull request\
+    Rules: keep ApiResponse`<T>`{=html}, do not expose entities, all
+    tests must pass.
 
----
+## 📄 License
+
+MIT

@@ -3,6 +3,7 @@ using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -360,32 +361,21 @@ public class AuthController : BaseController
 
     [HttpPost]
     [AllowAnonymous]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
+    public async Task<ActionResult<ApiResponse<TokenRefreshResponseDto>>> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
     {
-        try
-        {
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
 
-            var result = await _authService.RefreshTokenAsync(refreshTokenDto.RefreshToken, ipAddress, userAgent);
+        var result = await _authService.RefreshTokenAsync(refreshTokenDto.RefreshToken, ipAddress, userAgent);
 
-            HttpContext.Session.SetString("AccessToken", result.AccessToken);
-            HttpContext.Session.SetString("RefreshToken", result.RefreshToken);
+        HttpContext.Session.SetString("AccessToken", result.AccessToken);
+        HttpContext.Session.SetString("RefreshToken", result.RefreshToken);
 
-            return Ok(result);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new
-            {
-                message = ex.Message,
-                isAccountDeactivated = ex.Message.Contains("deactivated")
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var response = ApiResponse<TokenRefreshResponseDto>.Ok(
+            result,
+            "Token refreshed successfully.",
+            StatusCodes.Status200OK);
+        return Ok(response);
     }
 
     [HttpGet]

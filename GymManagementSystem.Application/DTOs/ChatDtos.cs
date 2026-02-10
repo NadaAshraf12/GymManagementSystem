@@ -24,4 +24,9 @@ namespace GymManagementSystem.Application.DTOs
         public DateTime? LastMessageAt { get; set; }
         public int UnreadCount { get; set; }
     }
+
+    public class ChatUploadResultDto
+    {
+        public string Url { get; set; } = string.Empty;
+    }
 }
