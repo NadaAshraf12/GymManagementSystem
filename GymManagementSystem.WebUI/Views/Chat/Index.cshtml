@@ -278,7 +278,12 @@
                 }
 
                 const data = await res.json();
-                const url = data.url;
+                const url = data.data?.url || data.url;
+                if (!url) {
+                    console.error("Upload response missing URL", data);
+                    return;
+                }
+
                 const ext = (file.name.split('.').pop() || "").toLowerCase();
                 const type = (ext === "jpg" || ext === "jpeg" || ext === "png") ? 1 : 2;
                 const caption = messageInput.value.trim();

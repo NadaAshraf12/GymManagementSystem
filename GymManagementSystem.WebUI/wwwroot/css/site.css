@@ -21,7 +21,7 @@ body {
   margin-bottom: 60px;
 }
 
-:root {
+.chat-page {
   --chat-bg: #ffffff;
   --chat-surface: #ffffff;
   --chat-surface-alt: #f7f7f7;
@@ -35,10 +35,11 @@ body {
   --input-border: #d7d7d7;
   --badge-bg: #d64545;
   --badge-text: #ffffff;
+  color: var(--text-color);
+  background-color: var(--chat-bg);
 }
 
-html.dark,
-body.dark {
+html.dark .chat-page {
   --chat-bg: #1e1e1e;
   --chat-surface: #1f1f1f;
   --chat-surface-alt: #2a2a2a;
@@ -52,9 +53,6 @@ body.dark {
   --input-border: #3b3b3b;
   --badge-bg: #c13f3f;
   --badge-text: #ffffff;
-}
-
-body {
   color: var(--text-color);
   background-color: var(--chat-bg);
 }
