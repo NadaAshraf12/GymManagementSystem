@@ -1,48 +1,68 @@
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Domain.Entities;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.Application.Services;
 
 public class SessionService : ISessionService
 {
-    private readonly IApplicationDbContext _db;
-    public SessionService(IApplicationDbContext db)
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IAppAuthorizationService _authorizationService;
+
+    public SessionService(IUnitOfWork unitOfWork, IAppAuthorizationService authorizationService)
     {
-        _db = db;
+        _unitOfWork = unitOfWork;
+        _authorizationService = authorizationService;
     }
 
     public async Task<WorkoutSessionDto> CreateAsync(CreateWorkoutSessionDto dto)
     {
-        var session = new WorkoutSession
+        var session = dto.Adapt<WorkoutSession>();
+        session.CurrentParticipants = 0;
+
+        var sessionRepo = _unitOfWork.Repository<WorkoutSession>();
+        await sessionRepo.AddAsync(session);
+        await _unitOfWork.SaveChangesAsync();
+
+        return session.Adapt<WorkoutSessionDto>();
+    }
+
+    public async Task<WorkoutSessionDto> UpdateAsync(UpdateWorkoutSessionDto dto)
+    {
+        var sessionRepo = _unitOfWork.Repository<WorkoutSession>();
+        var session = await sessionRepo.FirstOrDefaultAsync(
+            sessionRepo.Query().Where(s => s.Id == dto.Id));
+
+        if (session == null)
         {
-            TrainerId = dto.TrainerId,
-            Title = dto.Title,
-            Description = dto.Description,
-            SessionDate = dto.SessionDate,
-            StartTime = dto.StartTime,
-            EndTime = dto.EndTime,
-            MaxParticipants = dto.MaxParticipants,
-            CurrentParticipants = 0
-        };
+            throw new KeyNotFoundException("Session not found.");
+        }
 
-        _db.WorkoutSessions.Add(session);
-        await _db.SaveChangesAsync();
+        await _authorizationService.EnsureTrainerOwnsResourceAsync(session.TrainerId);
 
-        return Map(session);
+        dto.Adapt(session);
+        await _unitOfWork.SaveChangesAsync();
+
+        return session.Adapt<WorkoutSessionDto>();
     }
 
     public async Task<bool> BookMemberAsync(BookMemberToSessionDto dto)
     {
-        var session = await _db.WorkoutSessions.FirstOrDefaultAsync(s => s.Id == dto.WorkoutSessionId);
+        var sessionRepo = _unitOfWork.Repository<WorkoutSession>();
+        var memberSessionRepo = _unitOfWork.Repository<MemberSession>();
+
+        var session = await sessionRepo.FirstOrDefaultAsync(
+            sessionRepo.Query().Where(s => s.Id == dto.WorkoutSessionId));
         if (session == null)
             return false;
 
         if (session.CurrentParticipants >= session.MaxParticipants)
             return false;
 
-        var alreadyBooked = await _db.MemberSessions.AnyAsync(ms => ms.WorkoutSessionId == dto.WorkoutSessionId && ms.MemberId == dto.MemberId);
+        var alreadyBooked = await memberSessionRepo.AnyAsync(ms =>
+            ms.WorkoutSessionId == dto.WorkoutSessionId && ms.MemberId == dto.MemberId);
         if (alreadyBooked)
             return true;
 
@@ -53,49 +73,42 @@ public class SessionService : ISessionService
             BookingDate = DateTime.UtcNow,
             Attended = false
         };
-        _db.MemberSessions.Add(booking);
+        await memberSessionRepo.AddAsync(booking);
         session.CurrentParticipants += 1;
-        await _db.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 
     public async Task<bool> CancelBookingAsync(string memberId, int workoutSessionId)
     {
-        var booking = await _db.MemberSessions.FirstOrDefaultAsync(ms => ms.WorkoutSessionId == workoutSessionId && ms.MemberId == memberId);
+        var sessionRepo = _unitOfWork.Repository<WorkoutSession>();
+        var memberSessionRepo = _unitOfWork.Repository<MemberSession>();
+
+        var booking = await memberSessionRepo.FirstOrDefaultAsync(
+            memberSessionRepo.Query().Where(ms => ms.WorkoutSessionId == workoutSessionId && ms.MemberId == memberId));
         if (booking == null)
             return false;
 
-        _db.MemberSessions.Remove(booking);
-        var session = await _db.WorkoutSessions.FirstOrDefaultAsync(s => s.Id == workoutSessionId);
+        memberSessionRepo.Remove(booking);
+        var session = await sessionRepo.FirstOrDefaultAsync(
+            sessionRepo.Query().Where(s => s.Id == workoutSessionId));
         if (session != null && session.CurrentParticipants > 0)
         {
             session.CurrentParticipants -= 1;
         }
-        await _db.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 
     public async Task<IReadOnlyList<WorkoutSessionDto>> GetByTrainerAsync(string trainerId, DateTime? from = null, DateTime? to = null)
     {
-        var query = _db.WorkoutSessions.AsQueryable().Where(s => s.TrainerId == trainerId);
+        var sessionRepo = _unitOfWork.Repository<WorkoutSession>();
+        var query = sessionRepo.Query().Where(s => s.TrainerId == trainerId);
         if (from.HasValue) query = query.Where(s => s.SessionDate >= from.Value);
         if (to.HasValue) query = query.Where(s => s.SessionDate <= to.Value);
-        var list = await query.OrderBy(s => s.SessionDate).ThenBy(s => s.StartTime).ToListAsync();
-        return list.Select(Map).ToList();
+        var list = await sessionRepo.ToListAsync(query.OrderBy(s => s.SessionDate).ThenBy(s => s.StartTime));
+        return list.Adapt<List<WorkoutSessionDto>>();
     }
-
-    private static WorkoutSessionDto Map(WorkoutSession s) => new()
-    {
-        Id = s.Id,
-        TrainerId = s.TrainerId,
-        Title = s.Title,
-        Description = s.Description,
-        SessionDate = s.SessionDate,
-        StartTime = s.StartTime,
-        EndTime = s.EndTime,
-        MaxParticipants = s.MaxParticipants,
-        CurrentParticipants = s.CurrentParticipants
-    };
 }
 
 

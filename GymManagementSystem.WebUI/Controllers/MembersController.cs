@@ -31,12 +31,12 @@ public class MembersController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        return View();
+        return View(new CreateMemberDto());
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(MemberDto memberDto)
+    public async Task<IActionResult> Create(CreateMemberDto memberDto)
     {
         if (!ModelState.IsValid)
         {
@@ -94,7 +94,7 @@ public class MembersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(MemberDto memberDto)
+    public async Task<IActionResult> Edit(UpdateMemberDto memberDto)
     {
         if (!ModelState.IsValid)
         {

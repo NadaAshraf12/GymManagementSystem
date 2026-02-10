@@ -23,6 +23,7 @@ namespace GymManagementSystem.Application.Interfaces
         DbSet<LoginAudit> LoginAudits { get; }
         DbSet<RefreshToken> RefreshTokens { get; }
         DbSet<ChatMessage> ChatMessages { get; }
+        DbSet<AuditLog> AuditLogs { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

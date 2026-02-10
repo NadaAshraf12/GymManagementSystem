@@ -4,10 +4,10 @@ namespace GymManagementSystem.Application.Interfaces;
 
 public interface ITrainerService
 {
-    Task<IReadOnlyList<TrainerDto>> GetAllAsync();
-    Task<TrainerDto?> GetByIdAsync(string id);
-    Task<OperationResultDto> CreateAsync(TrainerDto dto);
-    Task<OperationResultDto> UpdateAsync(TrainerDto dto);
+    Task<IReadOnlyList<TrainerReadDto>> GetAllAsync();
+    Task<UpdateTrainerDto?> GetByIdAsync(string id);
+    Task<OperationResultDto> CreateAsync(CreateTrainerDto dto);
+    Task<OperationResultDto> UpdateAsync(UpdateTrainerDto dto);
     Task<OperationResultDto> DeleteAsync(string id);
 }
 

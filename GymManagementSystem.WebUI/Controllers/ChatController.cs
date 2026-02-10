@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using GymManagementSystem.Application.Interfaces;
+using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Domain.Entities;
 using GymManagementSystem.WebUI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 
 namespace GymManagementSystem.WebUI.Controllers
 {
@@ -43,24 +45,33 @@ namespace GymManagementSystem.WebUI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Upload(IFormFile file)
+        public async Task<ActionResult<ApiResponse<ChatUploadResultDto>>> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
-                return BadRequest("No file uploaded.");
+                var response = ApiResponse<ChatUploadResultDto>.Fail(
+                    "No file uploaded.",
+                    StatusCodes.Status400BadRequest);
+                return BadRequest(response);
             }
 
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(ext))
             {
-                return BadRequest("Unsupported file type.");
+                var response = ApiResponse<ChatUploadResultDto>.Fail(
+                    "Unsupported file type.",
+                    StatusCodes.Status400BadRequest);
+                return BadRequest(response);
             }
 
             const long maxSize = 5 * 1024 * 1024;
             if (file.Length > maxSize)
             {
-                return BadRequest("File too large.");
+                var response = ApiResponse<ChatUploadResultDto>.Fail(
+                    "File too large.",
+                    StatusCodes.Status400BadRequest);
+                return BadRequest(response);
             }
 
             var uploadsDir = Path.Combine(_env.WebRootPath, "chat_uploads");
@@ -78,7 +89,12 @@ namespace GymManagementSystem.WebUI.Controllers
             }
 
             var url = $"/chat_uploads/{safeName}";
-            return Ok(new { url });
+            var result = new ChatUploadResultDto { Url = url };
+            var ok = ApiResponse<ChatUploadResultDto>.Ok(
+                result,
+                "Upload successful.",
+                StatusCodes.Status200OK);
+            return Ok(ok);
         }
     }
 }

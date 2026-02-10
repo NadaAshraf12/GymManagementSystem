@@ -15,15 +15,15 @@ namespace GymManagementSystem.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<MemberDto>> GetAllMembersAsync()
+        public async Task<List<MemberReadDto>> GetAllMembersAsync()
         {
             var repo = _unitOfWork.Repository<Member>();
             var query = repo.Query().Where(m => m.IsActive);
             var members = await repo.ToListAsync(query);
-            return members.Adapt<List<MemberDto>>();
+            return members.Adapt<List<MemberReadDto>>();
         }
 
-        public async Task<MemberDto?> GetMemberByIdAsync(string id)
+        public async Task<UpdateMemberDto?> GetMemberByIdAsync(string id)
         {
             var repo = _unitOfWork.Repository<Member>();
             var query = repo.Query().Where(m => m.Id == id && m.IsActive);
@@ -31,10 +31,10 @@ namespace GymManagementSystem.Application.Services
 
             if (member == null) return null;
 
-            return member.Adapt<MemberDto>();
+            return member.Adapt<UpdateMemberDto>();
         }
 
-        public async Task<bool> CreateMemberAsync(MemberDto memberDto)
+        public async Task<bool> CreateMemberAsync(CreateMemberDto memberDto)
         {
             try
             {
@@ -69,19 +69,13 @@ namespace GymManagementSystem.Application.Services
             return "MEM" + DateTime.Now.ToString("yyyyMMddHHmmss");
         }
 
-        public async Task<bool> UpdateMemberAsync(MemberDto memberDto)
+        public async Task<bool> UpdateMemberAsync(UpdateMemberDto memberDto)
         {
             var repo = _unitOfWork.Repository<Member>();
             var member = await repo.GetByIdAsync(memberDto.Id);
             if (member == null) return false;
 
-            member.FirstName = memberDto.FirstName;
-            member.LastName = memberDto.LastName;
-            member.Email = memberDto.Email;
-            member.PhoneNumber = memberDto.PhoneNumber;
-            member.DateOfBirth = memberDto.DateOfBirth;
-            member.Gender = memberDto.Gender;
-            member.Address = memberDto.Address;
+            memberDto.Adapt(member);
             member.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();

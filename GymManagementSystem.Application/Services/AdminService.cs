@@ -2,17 +2,19 @@ using System;
 using System.Linq;
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
+using GymManagementSystem.Domain.Entities;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.Application.Services;
 
 public class AdminService : IAdminService
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public AdminService(IApplicationDbContext context)
+    public AdminService(IUnitOfWork unitOfWork)
     {
-        _context = context;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<PaginatedResult<LoginAuditDto>> GetLoginAuditsAsync(int page, int pageSize)
@@ -20,78 +22,54 @@ public class AdminService : IAdminService
         if (page <= 0) page = 1;
         if (pageSize <= 0) pageSize = 20;
 
-        var query = _context.LoginAudits
+        var loginAuditRepo = _unitOfWork.Repository<LoginAudit>();
+        var query = loginAuditRepo.Query()
             .Include(l => l.User)
             .OrderByDescending(l => l.LoginTime);
 
         var total = await query.CountAsync();
-        var audits = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(l => new LoginAuditDto
-            {
-                Id = l.Id,
-                Email = l.Email,
-                UserName = l.User != null ? $"{l.User.FirstName} {l.User.LastName}" : "Unknown",
-                IpAddress = l.IpAddress ?? "Unknown",
-                LoginTime = l.LoginTime,
-                LogoutTime = l.LogoutTime,
-                IsSuccessful = l.IsSuccessful,
-                FailureReason = l.FailureReason
-            })
-            .ToListAsync();
+        var audits = await loginAuditRepo.ToListAsync(
+            query.Skip((page - 1) * pageSize).Take(pageSize));
 
-        return new PaginatedResult<LoginAuditDto>(audits, total, page, pageSize);
+        var dtos = audits.Adapt<List<LoginAuditDto>>();
+        return new PaginatedResult<LoginAuditDto>(dtos, total, page, pageSize);
     }
 
     public async Task<IReadOnlyList<ActiveSessionDto>> GetActiveSessionsAsync()
     {
         var now = DateTime.UtcNow;
-        var sessions = await _context.LoginAudits
-            .Include(l => l.User)
-            .Where(l => l.IsSuccessful && l.LogoutTime == null)
-            .OrderByDescending(l => l.LoginTime)
-            .ToListAsync();
+        var loginAuditRepo = _unitOfWork.Repository<LoginAudit>();
+        var sessions = await loginAuditRepo.ToListAsync(
+            loginAuditRepo.Query()
+                .Include(l => l.User)
+                .Where(l => l.IsSuccessful && l.LogoutTime == null)
+                .OrderByDescending(l => l.LoginTime));
 
-        return sessions
-            .Select(l => new ActiveSessionDto
-            {
-                AuditId = l.Id,
-                Email = l.Email,
-                UserName = l.User != null ? $"{l.User.FirstName} {l.User.LastName}" : "Unknown",
-                IpAddress = l.IpAddress ?? "Unknown",
-                UserAgent = l.UserAgent,
-                LoginTime = l.LoginTime,
-                Duration = now - l.LoginTime
-            })
-            .ToList();
+        var dtos = sessions.Adapt<List<ActiveSessionDto>>();
+        foreach (var dto in dtos)
+        {
+            dto.Duration = now - dto.LoginTime;
+        }
+        return dtos;
     }
 
     public async Task<AssignTrainerLookupDto> GetAssignTrainerLookupsAsync()
     {
-        var trainers = await _context.Trainers
-            .OrderBy(t => t.FirstName).ThenBy(t => t.LastName)
-            .Select(t => new UserLookupDto
-            {
-                Id = t.Id,
-                DisplayName = $"{t.FirstName} {t.LastName}"
-            })
-            .ToListAsync();
+        var trainerRepo = _unitOfWork.Repository<Trainer>();
+        var memberRepo = _unitOfWork.Repository<Member>();
 
-        var members = await _context.Members
-            .OrderBy(m => m.FirstName).ThenBy(m => m.LastName)
-            .Select(m => new UserLookupDto
-            {
-                Id = m.Id,
-                DisplayName = $"{m.MemberCode} - {m.FirstName} {m.LastName}",
-                Code = m.MemberCode
-            })
-            .ToListAsync();
+        var trainers = await trainerRepo.ToListAsync(
+            trainerRepo.Query()
+                .OrderBy(t => t.FirstName).ThenBy(t => t.LastName));
+
+        var members = await memberRepo.ToListAsync(
+            memberRepo.Query()
+                .OrderBy(m => m.FirstName).ThenBy(m => m.LastName));
 
         return new AssignTrainerLookupDto
         {
-            Trainers = trainers,
-            Members = members
+            Trainers = trainers.Adapt<List<UserLookupDto>>(),
+            Members = members.Adapt<List<UserLookupDto>>()
         };
     }
 }

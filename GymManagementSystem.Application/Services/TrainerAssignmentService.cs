@@ -1,23 +1,27 @@
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Domain.Entities;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.Application.Services;
 
 public class TrainerAssignmentService : ITrainerAssignmentService
 {
-    private readonly IApplicationDbContext _db;
-    public TrainerAssignmentService(IApplicationDbContext db)
+    private readonly IUnitOfWork _unitOfWork;
+
+    public TrainerAssignmentService(IUnitOfWork unitOfWork)
     {
-        _db = db;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<AssignmentResultDto> AssignAsync(AssignTrainerDto dto)
     {
+        var assignmentRepo = _unitOfWork.Repository<TrainerMemberAssignment>();
+
         // Check if member already has a trainer
-        var existingForMember = await _db.TrainerMemberAssignments
-            .FirstOrDefaultAsync(a => a.MemberId == dto.MemberId);
+        var existingForMember = await assignmentRepo.FirstOrDefaultAsync(
+            assignmentRepo.Query().Where(a => a.MemberId == dto.MemberId));
 
         if (existingForMember != null)
         {
@@ -29,16 +33,11 @@ public class TrainerAssignmentService : ITrainerAssignmentService
         }
 
         // Create new assignment
-        var assignment = new TrainerMemberAssignment
-        {
-            TrainerId = dto.TrainerId,
-            MemberId = dto.MemberId,
-            Notes = dto.Notes,
-            AssignedAt = DateTime.UtcNow
-        };
+        var assignment = dto.Adapt<TrainerMemberAssignment>();
+        assignment.AssignedAt = DateTime.UtcNow;
 
-        _db.TrainerMemberAssignments.Add(assignment);
-        await _db.SaveChangesAsync();
+        await assignmentRepo.AddAsync(assignment);
+        await _unitOfWork.SaveChangesAsync();
 
         return new AssignmentResultDto
         {
@@ -50,53 +49,43 @@ public class TrainerAssignmentService : ITrainerAssignmentService
 
     public async Task<bool> UnassignAsync(int assignmentId)
     {
-        var a = await _db.TrainerMemberAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId);
+        var assignmentRepo = _unitOfWork.Repository<TrainerMemberAssignment>();
+        var a = await assignmentRepo.FirstOrDefaultAsync(
+            assignmentRepo.Query().Where(x => x.Id == assignmentId));
         if (a == null) return false;
-        _db.TrainerMemberAssignments.Remove(a);
-        await _db.SaveChangesAsync();
+        assignmentRepo.Remove(a);
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 
     public async Task<int> CountMembersForTrainerAsync(string trainerId)
     {
-        return await _db.TrainerMemberAssignments.CountAsync(a => a.TrainerId == trainerId);
+        var assignmentRepo = _unitOfWork.Repository<TrainerMemberAssignment>();
+        return await assignmentRepo.Query().CountAsync(a => a.TrainerId == trainerId);
     }
 
     public async Task<IReadOnlyList<TrainerAssignmentDto>> GetAssignmentsForTrainerAsync(string trainerId)
     {
-        var list = await _db.TrainerMemberAssignments.Where(a => a.TrainerId == trainerId)
-            .OrderByDescending(a => a.AssignedAt)
-            .ToListAsync();
-        return list.Select(Map).ToList();
+        var assignmentRepo = _unitOfWork.Repository<TrainerMemberAssignment>();
+        var list = await assignmentRepo.ToListAsync(
+            assignmentRepo.Query()
+                .Where(a => a.TrainerId == trainerId)
+                .OrderByDescending(a => a.AssignedAt));
+
+        return list.Adapt<List<TrainerAssignmentDto>>();
     }
 
     public async Task<IReadOnlyList<TrainerAssignmentDetailDto>> GetAssignmentsWithMembersAsync(string trainerId)
     {
-        var assignments = await _db.TrainerMemberAssignments
-            .Include(a => a.Member)
-            .Where(a => a.TrainerId == trainerId)
-            .OrderByDescending(a => a.AssignedAt)
-            .ToListAsync();
+        var assignmentRepo = _unitOfWork.Repository<TrainerMemberAssignment>();
+        var assignments = await assignmentRepo.ToListAsync(
+            assignmentRepo.Query()
+                .Include(a => a.Member)
+                .Where(a => a.TrainerId == trainerId)
+                .OrderByDescending(a => a.AssignedAt));
 
-        return assignments.Select(a => new TrainerAssignmentDetailDto
-        {
-            Id = a.Id,
-            MemberId = a.MemberId,
-            MemberCode = a.Member?.MemberCode ?? string.Empty,
-            MemberName = a.Member != null ? $"{a.Member.FirstName} {a.Member.LastName}" : "Unknown",
-            AssignedAt = a.AssignedAt,
-            Notes = a.Notes
-        }).ToList();
+        return assignments.Adapt<List<TrainerAssignmentDetailDto>>();
     }
-
-    private static TrainerAssignmentDto Map(TrainerMemberAssignment a) => new()
-    {
-        Id = a.Id,
-        TrainerId = a.TrainerId,
-        MemberId = a.MemberId,
-        AssignedAt = a.AssignedAt,
-        Notes = a.Notes
-    };
 }
 
 
