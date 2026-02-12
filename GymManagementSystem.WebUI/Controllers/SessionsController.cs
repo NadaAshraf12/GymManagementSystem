@@ -37,6 +37,19 @@ public class SessionsController : BaseApiController
         return ApiOk<object>(null, "Session booked successfully.");
     }
 
+    [HttpPost("book-paid")]
+    [Authorize(Policy = "SessionBookingAccess")]
+    public async Task<ActionResult<ApiResponse<SessionBookingResultDto>>> BookPaid(PaidSessionBookingDto dto)
+    {
+        var result = await _sessionService.BookPaidSessionAsync(dto);
+        if (!result.Success)
+        {
+            return ApiBadRequest<SessionBookingResultDto>(result.Message);
+        }
+
+        return ApiOk(result, result.Message);
+    }
+
     [HttpDelete("book")]
     [Authorize(Policy = "SessionBookingAccess")]
     public async Task<ActionResult<ApiResponse<object>>> Cancel([FromQuery] string memberId, [FromQuery] int workoutSessionId)
@@ -56,6 +69,22 @@ public class SessionsController : BaseApiController
     {
         var list = await _sessionService.GetByTrainerAsync(trainerId, from, to);
         return ApiOk<IReadOnlyList<WorkoutSessionDto>>(list, "Sessions retrieved successfully.");
+    }
+
+    [HttpGet("member/{memberId}")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<WorkoutSessionDto>>>> GetForMember(string memberId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var list = await _sessionService.GetAvailableForMemberAsync(memberId, from, to);
+        return ApiOk<IReadOnlyList<WorkoutSessionDto>>(list, "Sessions retrieved successfully.");
+    }
+
+    [HttpGet("member/{memberId}/pricing-preview")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SessionPricingPreviewDto>>>> GetPricingPreview(string memberId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var list = await _sessionService.GetSessionPricingPreviewsAsync(memberId, from, to);
+        return ApiOk<IReadOnlyList<SessionPricingPreviewDto>>(list, "Session pricing preview retrieved successfully.");
     }
 
     [HttpPut("{id:int}")]

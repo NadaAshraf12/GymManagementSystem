@@ -3,6 +3,11 @@
     ViewData["Title"] = "My Members";
 }
 <h2>My Members</h2>
+<div class="mb-3">
+    <a class="btn btn-outline-warning" href="@Url.Action("Commissions", "Trainer")">
+        <i class="fas fa-money-bill-wave"></i> My Commissions
+    </a>
+</div>
 
 @if (TempData["Success"] != null)
 {

@@ -4,68 +4,35 @@ using GymManagementSystem.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.WebUI.Controllers;
 
 [Authorize(Roles = "Member,Admin")] 
 public class MemberController : BaseController
 {
-    private readonly IApplicationDbContext _db;
     private readonly ISessionService _sessionService;
-    public MemberController(IApplicationDbContext db, ISessionService sessionService, UserManager<ApplicationUser> userManager) : base(userManager)
+    private readonly IMemberPlansService _memberPlansService;
+
+    public MemberController(
+        ISessionService sessionService,
+        IMemberPlansService memberPlansService,
+        UserManager<ApplicationUser> userManager) : base(userManager)
     {
-        _db = db;
         _sessionService = sessionService;
+        _memberPlansService = memberPlansService;
     }
 
     public async Task<IActionResult> MyPlans()
     {
         var memberId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var snapshot = await _memberPlansService.GetSnapshotAsync(memberId);
 
-        var assignment = await _db.TrainerMemberAssignments
-            .Include(a => a.Trainer)
-            .FirstOrDefaultAsync(a => a.MemberId == memberId);
-
-        var latestTrainingPlan = await _db.TrainingPlans
-            .Where(tp => tp.MemberId == memberId)
-            .OrderByDescending(tp => tp.CreatedAt)
-            .Include(tp => tp.Items)
-            .FirstOrDefaultAsync();
-
-        var latestNutritionPlan = await _db.NutritionPlans
-            .Where(np => np.MemberId == memberId)
-            .OrderByDescending(np => np.CreatedAt)
-            .Include(np => np.Items)
-            .FirstOrDefaultAsync();
-
-        var upcomingSessions = await _db.MemberSessions
-            .Include(ms => ms.WorkoutSession)
-            .Where(ms => ms.MemberId == memberId && ms.WorkoutSession.SessionDate >= DateTime.UtcNow.Date)
-            .OrderBy(ms => ms.WorkoutSession.SessionDate)
-            .Take(10)
-            .ToListAsync();
-
-        List<Domain.Entities.WorkoutSession> trainerUpcomingSessions = new();
-        if (assignment != null)
-        {
-            var today = DateTime.UtcNow.Date;
-            trainerUpcomingSessions = await _db.WorkoutSessions
-                .Where(ws => ws.TrainerId == assignment.TrainerId && ws.SessionDate >= today)
-                .OrderBy(ws => ws.SessionDate)
-                .ThenBy(ws => ws.StartTime)
-                .Take(20)
-                .ToListAsync();
-        }
-
-        var bookedIds = upcomingSessions.Select(ms => ms.WorkoutSessionId).ToHashSet();
-
-        ViewBag.Assignment = assignment;
-        ViewBag.TrainingPlan = latestTrainingPlan;
-        ViewBag.NutritionPlan = latestNutritionPlan;
-        ViewBag.Upcoming = upcomingSessions;
-        ViewBag.TrainerUpcoming = trainerUpcomingSessions;
-        ViewBag.BookedSessionIds = bookedIds;
+        ViewBag.Assignment = snapshot.Assignment;
+        ViewBag.TrainingPlan = snapshot.TrainingPlan;
+        ViewBag.NutritionPlan = snapshot.NutritionPlan;
+        ViewBag.Upcoming = snapshot.UpcomingBookings;
+        ViewBag.TrainerUpcoming = snapshot.TrainerUpcomingSessions;
+        ViewBag.BookedSessionIds = snapshot.BookedSessionIds;
 
         return View();
     }
@@ -75,12 +42,9 @@ public class MemberController : BaseController
     public async Task<IActionResult> ToggleTrainingItem(int itemId)
     {
         var memberId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        var item = await _db.TrainingPlanItems.Include(i => i.TrainingPlan).FirstOrDefaultAsync(i => i.Id == itemId);
-        if (item == null || item.TrainingPlan.MemberId != memberId)
+        var ok = await _memberPlansService.ToggleTrainingItemAsync(memberId, itemId);
+        if (!ok)
             return Forbid();
-
-        item.IsCompleted = !item.IsCompleted;
-        await _db.SaveChangesAsync();
         return RedirectToAction(nameof(MyPlans));
     }
 
@@ -89,12 +53,9 @@ public class MemberController : BaseController
     public async Task<IActionResult> ToggleNutritionItem(int itemId)
     {
         var memberId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        var item = await _db.NutritionPlanItems.Include(i => i.NutritionPlan).FirstOrDefaultAsync(i => i.Id == itemId);
-        if (item == null || item.NutritionPlan.MemberId != memberId)
+        var ok = await _memberPlansService.ToggleNutritionItemAsync(memberId, itemId);
+        if (!ok)
             return Forbid();
-
-        item.IsCompleted = !item.IsCompleted;
-        await _db.SaveChangesAsync();
         return RedirectToAction(nameof(MyPlans));
     }
 

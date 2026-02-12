@@ -17,6 +17,8 @@ using Serilog;
 using System.Security.Claims;
 using GymManagementSystem.WebUI.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GymManagementSystem.WebUI
 {
@@ -51,9 +53,12 @@ namespace GymManagementSystem.WebUI
 
             builder.Services.AddApplication(builder.Configuration);
             builder.Services.AddInfrastructure(builder.Configuration);
+            builder.Services.AddMemoryCache();
+            builder.Services.AddHealthChecks();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<GymManagementSystem.Application.Interfaces.ICurrentUserService, GymManagementSystem.WebUI.Services.CurrentUserService>();
             builder.Services.AddScoped<GymManagementSystem.Application.Interfaces.IAppAuthorizationService, GymManagementSystem.WebUI.Services.AppAuthorizationService>();
+            builder.Services.AddHostedService<GymManagementSystem.WebUI.Services.MembershipExpirationBackgroundService>();
 
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
@@ -142,6 +147,32 @@ namespace GymManagementSystem.WebUI
                     policy.Requirements.Add(new SessionBookingAccessRequirement()));
             });
             builder.Services.AddScoped<IAuthorizationHandler, SessionBookingAccessHandler>();
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.AddPolicy("wallet-adjust", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetRateLimitKey(httpContext, "wallet-adjust"),
+                        factory: key => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = key.Contains(":Admin:", StringComparison.OrdinalIgnoreCase) ? 30 : 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+
+                options.AddPolicy("payment-review", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetRateLimitKey(httpContext, "payment-review"),
+                        factory: key => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = key.Contains(":Admin:", StringComparison.OrdinalIgnoreCase) ? 60 : 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+            });
 
             var app = builder.Build();
 
@@ -158,6 +189,7 @@ namespace GymManagementSystem.WebUI
             app.UseStaticFiles();
             app.UseMiddleware<CorrelationIdMiddleware>();
             app.UseMiddleware<ApiExceptionHandlingMiddleware>();
+            app.UseMiddleware<PerformanceTimingMiddleware>();
             app.UseSerilogRequestLogging(options =>
             {
                 options.EnrichDiagnosticContext = (diagContext, httpContext) =>
@@ -172,6 +204,7 @@ namespace GymManagementSystem.WebUI
             });
             app.UseRouting();
             app.UseCors("AllowAll");
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
 
@@ -181,8 +214,16 @@ namespace GymManagementSystem.WebUI
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.MapHub<ChatHub>("/hubs/chat");
+            app.MapHealthChecks("/health");
 
             app.Run();
+        }
+
+        private static string GetRateLimitKey(HttpContext context, string policyName)
+        {
+            var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+            var role = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "anonymous";
+            return $"{policyName}:{role}:{userId}";
         }
     }
 }

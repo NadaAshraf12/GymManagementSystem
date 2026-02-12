@@ -15,6 +15,13 @@ namespace GymManagementSystem.Infrastructure.Data
         public DbSet<Trainer> Trainers { get; set; }
         public DbSet<Membership> Memberships { get; set; }
         public DbSet<MembershipPlan> MembershipPlans { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<Branch> Branches { get; set; }
+        public DbSet<Commission> Commissions { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<AddOn> AddOns { get; set; }
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
         public DbSet<WorkoutSession> WorkoutSessions { get; set; }
         public DbSet<MemberSession> MemberSessions { get; set; }
         public DbSet<TrainingPlan> TrainingPlans { get; set; }
@@ -31,6 +38,10 @@ namespace GymManagementSystem.Infrastructure.Data
         {
             base.OnModelCreating(builder);
             builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+            builder.Entity<ApplicationUser>().HasQueryFilter(x => !x.IsDeleted);
+            builder.Entity<Membership>().HasQueryFilter(x => !x.IsDeleted);
+            builder.Entity<MembershipPlan>().HasQueryFilter(x => !x.IsDeleted);
         }
     }
 }

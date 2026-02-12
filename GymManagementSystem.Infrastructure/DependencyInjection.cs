@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using GymManagementSystem.Application.Interfaces;
 using GymManagementSystem.Infrastructure.Data;
 using GymManagementSystem.Infrastructure.Repositories;
+using GymManagementSystem.Infrastructure.Services;
 
 namespace GymManagementSystem.Infrastructure
 {
@@ -22,6 +23,7 @@ namespace GymManagementSystem.Infrastructure
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IChatRepository, ChatRepository>();
+            services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
 
             return services;
         }

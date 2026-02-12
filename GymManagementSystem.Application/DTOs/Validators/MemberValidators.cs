@@ -13,6 +13,7 @@ namespace GymManagementSystem.Application.DTOs.Validators
             RuleFor(x => x.DateOfBirth).LessThan(DateTime.UtcNow.Date);
             RuleFor(x => x.Gender).NotEmpty().MaximumLength(20);
             RuleFor(x => x.Address).NotEmpty().MaximumLength(250);
+            RuleFor(x => x.BranchId).GreaterThan(0).When(x => x.BranchId.HasValue);
         }
     }
 
@@ -28,6 +29,7 @@ namespace GymManagementSystem.Application.DTOs.Validators
             RuleFor(x => x.DateOfBirth).LessThan(DateTime.UtcNow.Date);
             RuleFor(x => x.Gender).NotEmpty().MaximumLength(20);
             RuleFor(x => x.Address).NotEmpty().MaximumLength(250);
+            RuleFor(x => x.BranchId).GreaterThan(0).When(x => x.BranchId.HasValue);
         }
     }
 
@@ -42,6 +44,7 @@ namespace GymManagementSystem.Application.DTOs.Validators
             RuleFor(x => x.DateOfBirth).LessThan(DateTime.UtcNow.Date);
             RuleFor(x => x.Gender).NotEmpty().MaximumLength(20);
             RuleFor(x => x.Address).NotEmpty().MaximumLength(250);
+            RuleFor(x => x.BranchId).GreaterThan(0).When(x => x.BranchId.HasValue);
         }
     }
 }

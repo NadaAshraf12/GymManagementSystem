@@ -86,13 +86,14 @@ namespace GymManagementSystem.Application.Services
         {
             var repo = _unitOfWork.Repository<Member>();
             var member = await repo.GetByIdAsync(id);
-            if (member == null) return false;
+        if (member == null) return false;
 
-            member.IsActive = false;
-            member.UpdatedAt = DateTime.UtcNow;
+        member.IsActive = false;
+        member.IsDeleted = true;
+        member.UpdatedAt = DateTime.UtcNow;
 
-            await _unitOfWork.SaveChangesAsync();
-            return true;
+        await _unitOfWork.SaveChangesAsync();
+        return true;
         }
     }
 }

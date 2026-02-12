@@ -2,6 +2,7 @@ using FluentValidation;
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Exceptions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace GymManagementSystem.WebUI.Middleware;
@@ -65,6 +66,8 @@ public class ApiExceptionHandlingMiddleware
             case ValidationException ve:
                 var errs = ve.Errors.Select(e => e.ErrorMessage).ToList();
                 return (StatusCodes.Status400BadRequest, "Validation failed.", errs);
+            case DbUpdateConcurrencyException:
+                return (StatusCodes.Status409Conflict, "The record was modified by another operation. Please retry.", new List<string> { ex.Message });
             default:
                 return (StatusCodes.Status500InternalServerError, "An unexpected error occurred.", new List<string> { ex.Message });
         }

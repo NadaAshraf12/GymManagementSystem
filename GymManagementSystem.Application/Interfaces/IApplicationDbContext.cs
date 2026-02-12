@@ -13,6 +13,13 @@ namespace GymManagementSystem.Application.Interfaces
         // Other DbSets
         DbSet<Membership> Memberships { get; }
         DbSet<MembershipPlan> MembershipPlans { get; }
+        DbSet<Payment> Payments { get; }
+        DbSet<Branch> Branches { get; }
+        DbSet<Commission> Commissions { get; }
+        DbSet<Invoice> Invoices { get; }
+        DbSet<Notification> Notifications { get; }
+        DbSet<AddOn> AddOns { get; }
+        DbSet<WalletTransaction> WalletTransactions { get; }
         DbSet<WorkoutSession> WorkoutSessions { get; }
         DbSet<MemberSession> MemberSessions { get; }
         DbSet<TrainingPlan> TrainingPlans { get; }

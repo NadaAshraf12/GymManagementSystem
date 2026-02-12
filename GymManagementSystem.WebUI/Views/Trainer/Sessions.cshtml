@@ -1,4 +1,4 @@
-@model List<GymManagementSystem.Domain.Entities.WorkoutSession>
+@model List<GymManagementSystem.Application.DTOs.WorkoutSessionDto>
 @{
     ViewData["Title"] = "My Sessions";
 }
@@ -19,6 +19,7 @@
             <th>Start</th>
             <th>End</th>
             <th>Participants</th>
+            <th>Price</th>
             <th></th>
         </tr>
     </thead>
@@ -31,6 +32,7 @@
             <td>@s.StartTime</td>
             <td>@s.EndTime</td>
             <td>@s.CurrentParticipants / @s.MaxParticipants</td>
+            <td>@s.Price.ToString("C")</td>
             <td>
                 <a class="btn btn-sm btn-primary" href="@Url.Action("SessionAttendance", "Trainer", new { id = s.Id })">Manage Attendance</a>
             </td>

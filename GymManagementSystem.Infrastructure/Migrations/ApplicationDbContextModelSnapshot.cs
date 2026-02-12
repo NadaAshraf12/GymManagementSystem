@@ -22,6 +22,44 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.AddOn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("RequiresActiveMembership")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("AddOns");
+                });
+
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -49,6 +87,9 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")
@@ -157,6 +198,41 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Branch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Branches");
+                });
+
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.ChatMessage", b =>
                 {
                     b.Property<int>("Id")
@@ -198,6 +274,131 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.HasIndex("SenderId", "ReceiverId", "SentAt");
 
                     b.ToTable("ChatMessages");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Commission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CalculatedAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MembershipId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaidByAdminId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Percentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TrainerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("PaidAt");
+
+                    b.HasIndex("MembershipId", "CreatedAt");
+
+                    b.HasIndex("MembershipId", "Source")
+                        .IsUnique();
+
+                    b.HasIndex("TrainerId", "IsPaid");
+
+                    b.ToTable("Commissions");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Invoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AddOnId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("nvarchar(600)");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MemberId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("MembershipId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddOnId");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("MembershipId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("MemberId", "CreatedAt");
+
+                    b.ToTable("Invoices");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.LoginAudit", b =>
@@ -269,11 +470,17 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("AppliedDiscountPercentage")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<bool>("Attended")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("BookingDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("ChargedPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -285,17 +492,26 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<decimal>("OriginalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("PriorityBookingApplied")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("UsedIncludedSession")
+                        .HasColumnType("bit");
 
                     b.Property<int>("WorkoutSessionId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MemberId");
-
                     b.HasIndex("WorkoutSessionId");
+
+                    b.HasIndex("MemberId", "BookingDate", "UsedIncludedSession");
 
                     b.ToTable("MemberSessions");
                 });
@@ -308,13 +524,28 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AutoRenewEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("FreezeEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FreezeStartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("MemberId")
@@ -324,16 +555,33 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.Property<int>("MembershipPlanId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("PaidAmount")
+                    b.Property<decimal>("RemainingBalanceUsedFromWallet")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalPaid")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("MemberId");
 
@@ -350,21 +598,30 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AddOnAccess")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("CommissionRate")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("DurationInDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IncludedSessionsPerMonth")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<int>("MaxEntriesPerDay")
-                        .HasColumnType("int");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -374,12 +631,69 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("PriorityBooking")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("SessionDiscountPercentage")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name", "IsDeleted");
+
                     b.ToTable("MembershipPlans");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MemberId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("UserId", "IsRead", "CreatedAt");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.NutritionPlan", b =>
@@ -471,6 +785,62 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.HasIndex("NutritionPlanId");
 
                     b.ToTable("NutritionPlanItems");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ConfirmedByAdminId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MembershipId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentProofUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaidAt");
+
+                    b.HasIndex("MembershipId", "PaymentStatus", "CreatedAt");
+
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.RefreshToken", b =>
@@ -654,6 +1024,62 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.ToTable("TrainingPlanItems");
                 });
 
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.WalletTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MemberId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferenceId");
+
+                    b.HasIndex("MemberId", "CreatedAt");
+
+                    b.HasIndex("Type", "CreatedAt");
+
+                    b.ToTable("WalletTransactions");
+                });
+
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.WorkoutSession", b =>
                 {
                     b.Property<int>("Id")
@@ -661,6 +1087,9 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -681,6 +1110,9 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.Property<int>("MaxParticipants")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("SessionDate")
                         .HasColumnType("datetime2");
 
@@ -699,6 +1131,8 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("TrainerId");
 
@@ -851,6 +1285,9 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
@@ -874,12 +1311,28 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("WalletBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("MemberCode")
                         .IsUnique()
                         .HasFilter("[MemberCode] IS NOT NULL");
+
+                    b.ToTable(t =>
+                        {
+                            t.HasCheckConstraint("CK_Member_WalletBalance_NonNegative", "[WalletBalance] >= 0");
+                        });
 
                     b.HasDiscriminator().HasValue("Member");
                 });
@@ -891,6 +1344,9 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.Property<string>("BankAccount")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Certification")
                         .IsRequired()
@@ -910,7 +1366,25 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("AspNetUsers", t =>
+                        {
+                            t.Property("BranchId")
+                                .HasColumnName("Trainer_BranchId");
+                        });
+
                     b.HasDiscriminator().HasValue("Trainer");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.AddOn", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.ChatMessage", b =>
@@ -930,6 +1404,57 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.Navigation("Receiver");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Commission", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Membership", "Membership")
+                        .WithMany("Commissions")
+                        .HasForeignKey("MembershipId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GymManagementSystem.Domain.Entities.Trainer", "Trainer")
+                        .WithMany("Commissions")
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Membership");
+
+                    b.Navigation("Trainer");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Invoice", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.AddOn", "AddOn")
+                        .WithMany()
+                        .HasForeignKey("AddOnId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GymManagementSystem.Domain.Entities.Member", "Member")
+                        .WithMany("Invoices")
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GymManagementSystem.Domain.Entities.Membership", "Membership")
+                        .WithMany("Invoices")
+                        .HasForeignKey("MembershipId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GymManagementSystem.Domain.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AddOn");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Membership");
+
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.LoginAudit", b =>
@@ -964,6 +1489,11 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Membership", b =>
                 {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Branch", "Branch")
+                        .WithMany("Memberships")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("GymManagementSystem.Domain.Entities.Member", "Member")
                         .WithMany("Memberships")
                         .HasForeignKey("MemberId")
@@ -976,9 +1506,26 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Branch");
+
                     b.Navigation("Member");
 
                     b.Navigation("MembershipPlan");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Member", null)
+                        .WithMany("Notifications")
+                        .HasForeignKey("MemberId");
+
+                    b.HasOne("GymManagementSystem.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.NutritionPlan", b =>
@@ -1009,6 +1556,17 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("NutritionPlan");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Payment", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Membership", "Membership")
+                        .WithMany("Payments")
+                        .HasForeignKey("MembershipId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Membership");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.RefreshToken", b =>
@@ -1071,13 +1629,31 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.Navigation("TrainingPlan");
                 });
 
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.WalletTransaction", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Member", "Member")
+                        .WithMany("WalletTransactions")
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Member");
+                });
+
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.WorkoutSession", b =>
                 {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Branch", "Branch")
+                        .WithMany("WorkoutSessions")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("GymManagementSystem.Domain.Entities.Trainer", "Trainer")
                         .WithMany("WorkoutSessions")
                         .HasForeignKey("TrainerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Trainer");
                 });
@@ -1137,9 +1713,49 @@ namespace GymManagementSystem.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Member", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Branch", "Branch")
+                        .WithMany("Members")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Trainer", b =>
+                {
+                    b.HasOne("GymManagementSystem.Domain.Entities.Branch", "Branch")
+                        .WithMany("Trainers")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Branch", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Memberships");
+
+                    b.Navigation("Trainers");
+
+                    b.Navigation("WorkoutSessions");
+                });
+
+            modelBuilder.Entity("GymManagementSystem.Domain.Entities.Membership", b =>
+                {
+                    b.Navigation("Commissions");
+
+                    b.Navigation("Invoices");
+
+                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.MembershipPlan", b =>
@@ -1164,13 +1780,21 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Member", b =>
                 {
+                    b.Navigation("Invoices");
+
                     b.Navigation("MemberSessions");
 
                     b.Navigation("Memberships");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("WalletTransactions");
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Trainer", b =>
                 {
+                    b.Navigation("Commissions");
+
                     b.Navigation("WorkoutSessions");
                 });
 #pragma warning restore 612, 618

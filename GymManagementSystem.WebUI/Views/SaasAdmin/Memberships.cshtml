@@ -1,0 +1,305 @@
+@model GymManagementSystem.WebUI.Models.MembershipManagementViewModel
+@{
+    ViewData["Title"] = "Membership Operations";
+}
+
+<div class="row">
+    <div class="col-lg-3">
+        <partial name="_SaasSidebar" />
+    </div>
+    <div class="col-lg-9">
+        <h3 class="mb-3"><i class="fas fa-id-card me-2"></i>Membership Operations</h3>
+
+        <div class="alert alert-light border mb-3">
+            <strong>Lifecycle:</strong>
+            <span class="badge bg-warning text-dark ms-2">PendingPayment</span>
+            <i class="fas fa-arrow-right mx-1 text-muted"></i>
+            <span class="badge bg-success">Active</span>
+            <i class="fas fa-arrow-right mx-1 text-muted"></i>
+            <span class="badge bg-info text-dark">Frozen</span>
+            <i class="fas fa-arrow-right mx-1 text-muted"></i>
+            <span class="badge bg-secondary">Expired</span>
+            <span class="mx-2 text-muted">or</span>
+            <span class="badge bg-dark">Cancelled</span>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Pending Payments</div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Branch</th>
+                            <th>Amount</th>
+                            <th>Proof</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var p in Model.PendingPayments)
+                    {
+                        <tr>
+                            <td>@p.MemberDisplayName</td>
+                            <td>@p.MembershipPlanName</td>
+                            <td>@p.BranchName</td>
+                            <td>@p.Amount.ToString("C")</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(p.PaymentProofUrl))
+                                {
+                                    <a href="@p.PaymentProofUrl" target="_blank">Open</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No proof</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <form asp-action="ConfirmPayment" method="post" class="d-flex gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="paymentId" value="@p.PaymentId" />
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="confirmedAmount" placeholder="amount" />
+                                        <button class="btn btn-success btn-sm">Confirm</button>
+                                    </form>
+                                    <form asp-action="RejectPayment" method="post" class="d-flex gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="paymentId" value="@p.PaymentId" />
+                                        <input type="text" class="form-control form-control-sm" name="rejectionReason" placeholder="reason" required />
+                                        <button class="btn btn-danger btn-sm">Reject</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.PendingPayments.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No pending payments.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Active Memberships</div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Branch</th>
+                            <th>Status</th>
+                            <th>End Date</th>
+                            <th>Wallet</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.ActiveMemberships)
+                    {
+                        <tr>
+                            <td>@row.MemberDisplayName</td>
+                            <td>@row.MembershipPlanName</td>
+                            <td>@row.BranchName</td>
+                            <td><span class="badge @row.StatusBadgeClass">@row.Status</span></td>
+                            <td>@row.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td><span class="badge bg-info text-dark">@row.WalletBalance.ToString("C")</span></td>
+                            <td>
+                                <form asp-action="FreezeMembership" method="post" class="d-flex gap-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="MembershipId" value="@row.MembershipId" />
+                                    <input class="form-control form-control-sm" type="datetime-local" name="FreezeStartDate" required />
+                                    <button class="btn btn-warning btn-sm">Freeze</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.ActiveMemberships.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">No active memberships.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Frozen Memberships</div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Branch</th>
+                            <th>Status</th>
+                            <th>End Date</th>
+                            <th>Wallet</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.FrozenMemberships)
+                    {
+                        <tr>
+                            <td>@row.MemberDisplayName</td>
+                            <td>@row.MembershipPlanName</td>
+                            <td>@row.BranchName</td>
+                            <td><span class="badge @row.StatusBadgeClass">@row.Status</span></td>
+                            <td>@row.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td><span class="badge bg-info text-dark">@row.WalletBalance.ToString("C")</span></td>
+                            <td>
+                                <form asp-action="ResumeMembership" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="MembershipId" value="@row.MembershipId" />
+                                    <button class="btn btn-primary btn-sm">Resume</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.FrozenMemberships.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">No frozen memberships.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Expired Memberships</div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Branch</th>
+                            <th>Status</th>
+                            <th>End Date</th>
+                            <th>Wallet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.ExpiredMemberships)
+                    {
+                        <tr>
+                            <td>@row.MemberDisplayName</td>
+                            <td>@row.MembershipPlanName</td>
+                            <td>@row.BranchName</td>
+                            <td><span class="badge @row.StatusBadgeClass">@row.Status</span></td>
+                            <td>@row.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td><span class="badge bg-info text-dark">@row.WalletBalance.ToString("C")</span></td>
+                        </tr>
+                    }
+                    @if (!Model.ExpiredMemberships.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No expired memberships.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Cancelled Memberships</div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Branch</th>
+                            <th>Status</th>
+                            <th>End Date</th>
+                            <th>Wallet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.CancelledMemberships)
+                    {
+                        <tr>
+                            <td>@row.MemberDisplayName</td>
+                            <td>@row.MembershipPlanName</td>
+                            <td>@row.BranchName</td>
+                            <td><span class="badge @row.StatusBadgeClass">@row.Status</span></td>
+                            <td>@row.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td><span class="badge bg-info text-dark">@row.WalletBalance.ToString("C")</span></td>
+                        </tr>
+                    }
+                    @if (!Model.CancelledMemberships.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No cancelled memberships.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Wallet Adjustment</div>
+            <div class="card-body">
+                <form asp-action="AdjustWallet" method="post" class="row g-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-6">
+                        <label class="form-label">Member</label>
+                        <select class="form-select" name="MemberId" required>
+                            <option value="">Select member</option>
+                            @foreach (var m in Model.Members)
+                            {
+                                <option value="@m.Id">@m.Display</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Amount (+/-)</label>
+                        <input class="form-control" type="number" step="0.01" name="Amount" required />
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-dark w-100">Adjust</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm" id="plan-management">
+            <div class="card-header">Plan Management</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var p in Model.MembershipPlans)
+                    {
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="mb-0">@p.Name</h6>
+                                        <span class="badge @(p.IsActive ? "bg-success" : "bg-secondary")">@(p.IsActive ? "Active" : "Inactive")</span>
+                                    </div>
+                                    <div class="text-muted small mb-2">@p.Description</div>
+                                    <div class="small"><strong>Duration:</strong> @p.DurationInDays days</div>
+                                    <div class="small"><strong>Price:</strong> @p.Price.ToString("C")</div>
+                                    <div class="small"><strong>Discount:</strong> @p.DiscountPercentage.ToString("0.##")%</div>
+                                    <div class="small"><strong>Included Sessions/Month:</strong> @p.IncludedSessionsPerMonth</div>
+                                    <div class="small"><strong>Commission Rate:</strong> @p.CommissionRate</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

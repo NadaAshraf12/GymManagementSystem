@@ -50,4 +50,19 @@ public class AppAuthorizationService : IAppAuthorizationService
 
         throw new UnauthorizedException("Member access required.");
     }
+
+    public Task EnsureMemberOwnsResourceAsync(string memberId)
+    {
+        if (_currentUser.IsInRole(AdminRole))
+        {
+            return Task.CompletedTask;
+        }
+
+        if (_currentUser.IsInRole(MemberRole) && !string.IsNullOrWhiteSpace(_currentUser.UserId) && _currentUser.UserId == memberId)
+        {
+            return Task.CompletedTask;
+        }
+
+        throw new UnauthorizedException("You do not have permission to access this member resource.");
+    }
 }

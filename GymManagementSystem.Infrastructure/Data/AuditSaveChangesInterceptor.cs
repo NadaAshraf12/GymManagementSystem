@@ -16,7 +16,15 @@ public class AuditSaveChangesInterceptor : SaveChangesInterceptor
         typeof(NutritionPlan),
         typeof(NutritionPlanItem),
         typeof(WorkoutSession),
-        typeof(TrainerMemberAssignment)
+        typeof(TrainerMemberAssignment),
+        typeof(Membership),
+        typeof(Payment),
+        typeof(WalletTransaction),
+        typeof(Branch),
+        typeof(Commission),
+        typeof(Invoice),
+        typeof(Notification),
+        typeof(AddOn)
     };
 
     private readonly ICurrentUserService _currentUserService;

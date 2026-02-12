@@ -14,7 +14,10 @@ namespace GymManagementSystem.Domain.Entities
         public decimal Salary { get; set; }
         public string BankAccount { get; set; } = string.Empty;
         public DateTime HireDate { get; set; } = DateTime.UtcNow;
+        public int? BranchId { get; set; }
 
         public virtual ICollection<WorkoutSession> WorkoutSessions { get; set; } = new List<WorkoutSession>();
+        public virtual ICollection<Commission> Commissions { get; set; } = new List<Commission>();
+        public virtual Branch? Branch { get; set; }
     }
 }

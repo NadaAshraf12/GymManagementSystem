@@ -9,6 +9,7 @@ namespace GymManagementSystem.Application.DTOs
         public DateTime DateOfBirth { get; set; }
         public string Gender { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public int? BranchId { get; set; }
     }
 
     public class UpdateMemberDto
@@ -21,6 +22,7 @@ namespace GymManagementSystem.Application.DTOs
         public DateTime DateOfBirth { get; set; }
         public string Gender { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public int? BranchId { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -35,6 +37,7 @@ namespace GymManagementSystem.Application.DTOs
         public string Gender { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string MemberCode { get; set; } = string.Empty;
+        public int? BranchId { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -49,6 +52,7 @@ namespace GymManagementSystem.Application.DTOs
         public string Gender { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string MemberCode { get; set; } = string.Empty;
+        public int? BranchId { get; set; }
         public bool IsActive { get; set; }
     }
 }
