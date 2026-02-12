@@ -1,10 +1,10 @@
 @{
     ViewData["Title"] = "My Plans";
-    var assignment = ViewBag.Assignment as GymManagementSystem.Domain.Entities.TrainerMemberAssignment;
-    var training = ViewBag.TrainingPlan as GymManagementSystem.Domain.Entities.TrainingPlan;
-    var nutrition = ViewBag.NutritionPlan as GymManagementSystem.Domain.Entities.NutritionPlan;
-    var upcoming = ViewBag.Upcoming as List<GymManagementSystem.Domain.Entities.MemberSession>;
-    var trainerUpcoming = ViewBag.TrainerUpcoming as List<GymManagementSystem.Domain.Entities.WorkoutSession>;
+    var assignment = ViewBag.Assignment as GymManagementSystem.Application.DTOs.MemberPlanAssignmentDto;
+    var training = ViewBag.TrainingPlan as GymManagementSystem.Application.DTOs.TrainingPlanDto;
+    var nutrition = ViewBag.NutritionPlan as GymManagementSystem.Application.DTOs.NutritionPlanDto;
+    var upcoming = ViewBag.Upcoming as List<GymManagementSystem.Application.DTOs.MemberUpcomingBookingDto>;
+    var trainerUpcoming = ViewBag.TrainerUpcoming as List<GymManagementSystem.Application.DTOs.WorkoutSessionDto>;
 }
 
 <div class="container mt-4">
@@ -16,10 +16,10 @@
             <div class="card border-primary mb-3 shadow-sm">
                 <div class="card-header bg-primary text-white fw-bold">Assigned Trainer</div>
                 <div class="card-body">
-                    @if (assignment?.Trainer != null)
+                    @if (assignment != null)
                     {
-                        <h5 class="card-title">@assignment.Trainer.FirstName @assignment.Trainer.LastName</h5>
-                        <p class="card-text text-muted">@assignment.Trainer.Specialty</p>
+                        <h5 class="card-title">@assignment.TrainerName</h5>
+                        <p class="card-text text-muted">@assignment.Specialty</p>
                     }
                     else
                     {
@@ -38,7 +38,7 @@
                         <h5 class="card-title">@training.Title</h5>
                         <p class="card-text text-muted">@training.CreatedAt.ToString("yyyy-MM-dd")</p>
                         <ul class="list-group">
-                            @foreach (var i in (training.Items ?? new List<GymManagementSystem.Domain.Entities.TrainingPlanItem>()).OrderBy(x => x.DayOfWeek))
+                            @foreach (var i in (training.Items ?? new List<GymManagementSystem.Application.DTOs.TrainingPlanItemDto>()).OrderBy(x => x.DayOfWeek))
                             {
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
@@ -72,7 +72,7 @@
                         <h5 class="card-title">@nutrition.Title</h5>
                         <p class="card-text text-muted">@nutrition.CreatedAt.ToString("yyyy-MM-dd")</p>
                         <ul class="list-group">
-                            @foreach (var i in (nutrition.Items ?? new List<GymManagementSystem.Domain.Entities.NutritionPlanItem>()).OrderBy(x => x.DayOfWeek))
+                            @foreach (var i in (nutrition.Items ?? new List<GymManagementSystem.Application.DTOs.NutritionPlanItemDto>()).OrderBy(x => x.DayOfWeek))
                             {
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
@@ -111,6 +111,7 @@
                                     <th>Date</th>
                                     <th>Start</th>
                                     <th>End</th>
+                                    <th>Price</th>
                                     <!-- <th>Participants</th> -->
                                     <th>Action</th>
                                 </tr>
@@ -123,6 +124,7 @@
                                         <td>@s.SessionDate.ToString("yyyy-MM-dd")</td>
                                         <td>@s.StartTime</td>
                                         <td>@s.EndTime</td>
+                                        <td>@s.Price.ToString("C")</td>
                                         <!-- <td>@s.CurrentParticipants / @s.MaxParticipants</td> -->
                                         <td>
                                             @if (booked.Contains(s.Id))
@@ -136,11 +138,18 @@
                                             else
                                             {
                                                 var isFull = s.CurrentParticipants >= s.MaxParticipants;
-                                                <form asp-action="AttendSession" asp-controller="Member" method="post" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="workoutSessionId" value="@s.Id" />
-                                                    <button type="submit" class="btn btn-sm btn-success" @(isFull ? "disabled" : null)>I will attend</button>
-                                                </form>
+                                                if (s.Price > 0)
+                                                {
+                                                    <a class="btn btn-sm btn-primary @(isFull ? "disabled" : "")" asp-controller="Portal" asp-action="Index">Buy via Wallet</a>
+                                                }
+                                                else
+                                                {
+                                                    <form asp-action="AttendSession" asp-controller="Member" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="workoutSessionId" value="@s.Id" />
+                                                        <button type="submit" class="btn btn-sm btn-success" @(isFull ? "disabled" : null)>I will attend</button>
+                                                    </form>
+                                                }
                                             }
                                         </td>
                                     </tr>

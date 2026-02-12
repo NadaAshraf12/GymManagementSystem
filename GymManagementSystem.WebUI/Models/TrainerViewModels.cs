@@ -60,4 +60,25 @@ public class CreateNutritionPlanItemViewModel
     public string? Notes { get; set; }
 }
 
+public class TrainerCommissionDashboardViewModel
+{
+    public decimal TotalOwed { get; set; }
+    public decimal TotalPaid { get; set; }
+    public List<TrainerCommissionRowViewModel> RecentCommissions { get; set; } = new();
+}
+
+public class TrainerCommissionRowViewModel
+{
+    public int Id { get; set; }
+    public int MembershipId { get; set; }
+    public int? BranchId { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal Percentage { get; set; }
+    public decimal CalculatedAmount { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? PaidAt { get; set; }
+}
+
 

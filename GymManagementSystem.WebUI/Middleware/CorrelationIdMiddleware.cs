@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
 namespace GymManagementSystem.WebUI.Middleware;
 
@@ -27,6 +28,9 @@ public class CorrelationIdMiddleware
         context.Response.Headers[HeaderName] = correlationId;
 
         var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+
+        using var correlationScope = LogContext.PushProperty("CorrelationId", correlationId);
+        using var userScope = LogContext.PushProperty("UserId", userId);
 
         using (_logger.BeginScope(new Dictionary<string, object>
         {

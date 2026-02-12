@@ -22,8 +22,21 @@ public static class DependencyInjection
         services.AddScoped<ITrainerService, TrainerService>();
         services.AddScoped<ITrainingPlanService, TrainingPlanService>();
         services.AddScoped<INutritionPlanService, NutritionPlanService>();
+        services.AddScoped<IMembershipService, MembershipService>();
+        services.AddScoped<IMembershipPlanService, MembershipPlanService>();
+        services.AddScoped<ISubscriptionAutomationService, SubscriptionAutomationService>();
+        services.AddScoped<IRevenueMetricsService, RevenueMetricsService>();
+        services.AddScoped<IMemberPlansService, MemberPlansService>();
+        services.AddScoped<ITrainerDashboardService, TrainerDashboardService>();
+        services.AddScoped<IBranchService, BranchService>();
+        services.AddScoped<ICommissionService, CommissionService>();
+        services.AddScoped<IInvoiceService, InvoiceService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IAddOnService, AddOnService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IChatService, ChatService>();
+        services.AddScoped<IPaymentGateway, ManualVodafoneCashGateway>();
+        services.AddScoped<IPaymentGateway, FutureOnlineGateway>();
 
         services.Configure<JwtSettings>(options =>
         {

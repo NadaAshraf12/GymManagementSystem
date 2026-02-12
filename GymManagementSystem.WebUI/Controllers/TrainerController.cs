@@ -1,11 +1,9 @@
 using System.Security.Claims;
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
-using GymManagementSystem.Domain.Entities;
 using GymManagementSystem.WebUI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.WebUI.Controllers;
 
@@ -15,78 +13,83 @@ public class TrainerController : Controller
     private readonly ITrainerAssignmentService _assignmentService;
     private readonly ITrainingPlanService _trainingPlanService;
     private readonly INutritionPlanService _nutritionPlanService;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly ITrainerDashboardService _trainerDashboardService;
     private readonly ISessionService _sessionService;
+    private readonly ICommissionService _commissionService;
 
     public TrainerController(
         ITrainerAssignmentService assignmentService,
         ITrainingPlanService trainingPlanService,
         INutritionPlanService nutritionPlanService,
-        IUnitOfWork unitOfWork,
-        ISessionService sessionService)
+        ITrainerDashboardService trainerDashboardService,
+        ISessionService sessionService,
+        ICommissionService commissionService)
     {
         _assignmentService = assignmentService;
         _trainingPlanService = trainingPlanService;
         _nutritionPlanService = nutritionPlanService;
-        _unitOfWork = unitOfWork;
+        _trainerDashboardService = trainerDashboardService;
         _sessionService = sessionService;
+        _commissionService = commissionService;
     }
 
     [HttpGet]
     public async Task<IActionResult> MyMembers()
     {
         var trainerId = GetCurrentTrainerId();
-        var assignments = await _assignmentService.GetAssignmentsForTrainerAsync(trainerId);
-
-        var memberIds = assignments.Select(a => a.MemberId).ToList();
-        var membersRepo = _unitOfWork.Repository<Member>();
-        var tpItemRepo = _unitOfWork.Repository<TrainingPlanItem>();
-        var npItemRepo = _unitOfWork.Repository<NutritionPlanItem>();
-
-        var members = await membersRepo.Query().Where(m => memberIds.Contains(m.Id))
-            .Select(m => new TrainerMemberListItem
-            {
-                MemberId = m.Id,
-                Name = m.FirstName + " " + m.LastName,
-                MemberCode = m.MemberCode,
-                TrainingCompleted = tpItemRepo.Query()
-                    .Where(i => i.TrainingPlan.MemberId == m.Id && i.IsCompleted)
-                    .Count(),
-                TrainingTotal = tpItemRepo.Query()
-                    .Count(i => i.TrainingPlan.MemberId == m.Id),
-                NutritionCompleted = npItemRepo.Query()
-                    .Where(i => i.NutritionPlan.MemberId == m.Id && i.IsCompleted)
-                    .Count(),
-                NutritionTotal = npItemRepo.Query()
-                    .Count(i => i.NutritionPlan.MemberId == m.Id)
-            }).ToListAsync();
-
-        return View(members);
+        var members = await _trainerDashboardService.GetMyMembersAsync(trainerId);
+        var vm = members.Select(m => new TrainerMemberListItem
+        {
+            MemberId = m.MemberId,
+            Name = m.Name,
+            MemberCode = m.MemberCode,
+            TrainingCompleted = m.TrainingCompleted,
+            TrainingTotal = m.TrainingTotal,
+            NutritionCompleted = m.NutritionCompleted,
+            NutritionTotal = m.NutritionTotal
+        }).ToList();
+        return View(vm);
     }
 
     [HttpGet]
     public async Task<IActionResult> Sessions()
     {
         var trainerId = GetCurrentTrainerId();
-        var today = DateTime.UtcNow.Date;
-        var wsRepo = _unitOfWork.Repository<WorkoutSession>();
-        var sessions = await wsRepo.Query()
-            .Where(ws => ws.TrainerId == trainerId && ws.SessionDate >= today)
-            .OrderBy(ws => ws.SessionDate).ThenBy(ws => ws.StartTime)
-            .Include(ws => ws.MemberSessions)
-            .ToListAsync();
+        var sessions = await _trainerDashboardService.GetUpcomingSessionsAsync(trainerId);
         return View(sessions);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Commissions()
+    {
+        var dashboard = await _commissionService.GetMyDashboardAsync();
+        var vm = new TrainerCommissionDashboardViewModel
+        {
+            TotalOwed = dashboard.TotalOwed,
+            TotalPaid = dashboard.TotalPaid,
+            RecentCommissions = dashboard.RecentCommissions.Select(c => new TrainerCommissionRowViewModel
+            {
+                Id = c.Id,
+                MembershipId = c.MembershipId,
+                BranchId = c.BranchId,
+                Source = c.Source,
+                Status = c.Status,
+                Percentage = c.Percentage,
+                CalculatedAmount = c.CalculatedAmount,
+                IsPaid = c.IsPaid,
+                CreatedAt = c.CreatedAt,
+                PaidAt = c.PaidAt
+            }).ToList()
+        };
+
+        return View(vm);
     }
 
     [HttpGet]
     public async Task<IActionResult> SessionAttendance(int id)
     {
         var trainerId = GetCurrentTrainerId();
-        var wsRepo = _unitOfWork.Repository<WorkoutSession>();
-        var session = await wsRepo.Query()
-            .Include(ws => ws.MemberSessions)
-            .ThenInclude(ms => ms.Member)
-            .FirstOrDefaultAsync(ws => ws.Id == id && ws.TrainerId == trainerId);
+        var session = await _trainerDashboardService.GetSessionAttendanceAsync(trainerId, id);
         if (session == null) return NotFound();
         return View(session);
     }
@@ -95,15 +98,11 @@ public class TrainerController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SetAttendance(int memberSessionId, bool attended)
     {
-        var msRepo = _unitOfWork.Repository<MemberSession>();
-        var ms = await msRepo.Query().Include(x => x.WorkoutSession).FirstOrDefaultAsync(x => x.Id == memberSessionId);
-        if (ms == null) return NotFound();
         var trainerId = GetCurrentTrainerId();
-        if (ms.WorkoutSession.TrainerId != trainerId) return Forbid();
-        ms.Attended = attended;
-        await _unitOfWork.SaveChangesAsync();
+        var ok = await _trainerDashboardService.SetAttendanceAsync(trainerId, memberSessionId, attended);
+        if (!ok) return Forbid();
         TempData["Success"] = "Attendance updated.";
-        return RedirectToAction(nameof(SessionAttendance), new { id = ms.WorkoutSessionId });
+        return RedirectToAction(nameof(Sessions));
     }
 
     [HttpGet]

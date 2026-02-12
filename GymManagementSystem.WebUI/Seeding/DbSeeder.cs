@@ -1,5 +1,8 @@
 using GymManagementSystem.Domain.Entities;
+using GymManagementSystem.Infrastructure.Data;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.WebUI.Seeding;
 
@@ -11,6 +14,8 @@ public static class DbSeeder
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
 
         // Ensure roles
         var roles = new[] { "Admin", "Trainer", "Member", "Receptionist" };
@@ -99,6 +104,34 @@ public static class DbSeeder
             if (created.Succeeded)
             {
                 await userManager.AddToRoleAsync(member, "Member");
+            }
+        }
+
+        // Ensure at least one active membership plan in development
+        if (environment.IsDevelopment())
+        {
+            var hasActivePlans = await dbContext.MembershipPlans
+                .AsNoTracking()
+                .AnyAsync(x => x.IsActive && !x.IsDeleted);
+
+            if (!hasActivePlans)
+            {
+                dbContext.MembershipPlans.Add(new MembershipPlan
+                {
+                    Name = "Standard Monthly",
+                    Description = "Starter plan with balanced monthly benefits.",
+                    DurationInDays = 30,
+                    Price = 600m,
+                    CommissionRate = 10m,
+                    IncludedSessionsPerMonth = 4,
+                    SessionDiscountPercentage = 10m,
+                    PriorityBooking = false,
+                    AddOnAccess = true,
+                    IsActive = true,
+                    IsDeleted = false
+                });
+
+                await dbContext.SaveChangesAsync();
             }
         }
     }

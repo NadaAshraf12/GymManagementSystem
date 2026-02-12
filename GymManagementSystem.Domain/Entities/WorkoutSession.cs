@@ -13,12 +13,15 @@ namespace GymManagementSystem.Domain.Entities
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public DateTime SessionDate { get; set; }
+        public int? BranchId { get; set; }
+        public decimal Price { get; set; }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
         public int MaxParticipants { get; set; }
         public int CurrentParticipants { get; set; }
 
         public virtual Trainer Trainer { get; set; } = null!;
+        public virtual Branch? Branch { get; set; }
         public virtual ICollection<MemberSession> MemberSessions { get; set; } = new List<MemberSession>();
     }
 }

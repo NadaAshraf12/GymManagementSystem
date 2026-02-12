@@ -1,0 +1,139 @@
+@model GymManagementSystem.WebUI.Models.CreateMembershipViewModel
+@{
+    ViewData["Title"] = "Create Membership";
+    var hasMembers = Model.Members.Any();
+    var hasPlans = Model.Plans.Any();
+    var canSubmit = hasMembers && hasPlans;
+}
+
+<div class="row">
+    <div class="col-lg-3">
+        <partial name="_SaasSidebar" />
+    </div>
+    <div class="col-lg-9">
+        <h3 class="mb-3"><i class="fas fa-plus-circle me-2"></i>Create Membership</h3>
+
+        <div class="card shadow-sm">
+            <div class="card-header">Admin Direct Activation</div>
+            <div class="card-body">
+                @if (!hasPlans)
+                {
+                    <div class="alert alert-warning">
+                        No active plans found. Please create a membership plan first.
+                    </div>
+                    <a asp-controller="AdminMembershipPlans" asp-action="Index" class="btn btn-outline-primary btn-sm mb-3">
+                        <i class="fas fa-layer-group me-1"></i>Go to Plan Management
+                    </a>
+                }
+                @if (!hasMembers)
+                {
+                    <div class="alert alert-warning">No members found. Please add a member first.</div>
+                }
+
+                <form asp-action="CreateMembership" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+
+                    <div class="col-md-6">
+                        <label class="form-label">Member</label>
+                        <select class="form-select" name="MemberId" required disabled="@(!hasMembers)">
+                            <option value="">Select member</option>
+                            @foreach (var m in Model.Members)
+                            {
+                                <option value="@m.Id">@m.Display</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Membership Plan</label>
+                        <select id="planSelect" class="form-select" name="MembershipPlanId" required disabled="@(!hasPlans)">
+                            <option value="">Select plan</option>
+                            @foreach (var p in Model.Plans)
+                            {
+                                <option
+                                    value="@p.Id"
+                                    data-price="@p.Price"
+                                    data-duration="@p.DurationInDays"
+                                    data-discount="@p.DiscountPercentage"
+                                    data-commission="@p.CommissionRate"
+                                    data-benefits="@p.IncludedSessionsPerMonth sessions/month | Priority: @(p.PriorityBooking ? "Yes" : "No") | Add-Ons: @(p.AddOnAccess ? "Allowed" : "Restricted")">
+                                    @p.Label
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Branch</label>
+                        <select class="form-select" name="BranchId">
+                            <option value="">Use member branch</option>
+                            @foreach (var b in Model.Branches)
+                            {
+                                <option value="@b.Id">@b.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Start Date</label>
+                        <input class="form-control" type="date" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div class="col-12">
+                        <div class="card border-light-subtle">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-2">Plan Summary Preview</div>
+                                <div class="small"><strong>Price:</strong> <span id="previewPrice">-</span></div>
+                                <div class="small"><strong>Duration:</strong> <span id="previewDuration">-</span></div>
+                                <div class="small"><strong>Commission Rate:</strong> <span id="previewCommission">-</span></div>
+                                <div class="small"><strong>Discount:</strong> <span id="previewDiscount">-</span></div>
+                                <div class="small"><strong>Benefits:</strong> <span id="previewBenefits">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <button class="btn btn-primary" disabled="@(!canSubmit)">Create Membership</button>
+                        <a asp-action="Memberships" class="btn btn-outline-secondary ms-2">Back to Memberships</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const select = document.getElementById("planSelect");
+            const price = document.getElementById("previewPrice");
+            const duration = document.getElementById("previewDuration");
+            const commission = document.getElementById("previewCommission");
+            const discount = document.getElementById("previewDiscount");
+            const benefits = document.getElementById("previewBenefits");
+
+            if (!select) return;
+
+            function updatePreview() {
+                const option = select.options[select.selectedIndex];
+                if (!option || !option.value) {
+                    price.textContent = "-";
+                    duration.textContent = "-";
+                    commission.textContent = "-";
+                    discount.textContent = "-";
+                    benefits.textContent = "-";
+                    return;
+                }
+
+                price.textContent = option.dataset.price ? Number(option.dataset.price).toFixed(2) : "-";
+                duration.textContent = option.dataset.duration ? option.dataset.duration + " days" : "-";
+                commission.textContent = option.dataset.commission || "-";
+                discount.textContent = option.dataset.discount ? option.dataset.discount + "%" : "-";
+                benefits.textContent = option.dataset.benefits || "-";
+            }
+
+            select.addEventListener("change", updatePreview);
+            updatePreview();
+        })();
+    </script>
+}

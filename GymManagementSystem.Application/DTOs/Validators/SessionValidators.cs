@@ -7,9 +7,11 @@ namespace GymManagementSystem.Application.DTOs.Validators
         public CreateWorkoutSessionDtoValidator()
         {
             RuleFor(x => x.TrainerId).NotEmpty();
+            RuleFor(x => x.BranchId).GreaterThan(0).When(x => x.BranchId.HasValue);
             RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Description).NotEmpty().MaximumLength(500);
             RuleFor(x => x.SessionDate).GreaterThanOrEqualTo(DateTime.UtcNow.Date);
+            RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
             RuleFor(x => x.StartTime).LessThan(x => x.EndTime);
             RuleFor(x => x.MaxParticipants).GreaterThan(0).LessThanOrEqualTo(100);
         }
@@ -24,17 +26,27 @@ namespace GymManagementSystem.Application.DTOs.Validators
         }
     }
 
+    internal class PaidSessionBookingDtoValidator : AbstractValidator<PaidSessionBookingDto>
+    {
+        public PaidSessionBookingDtoValidator()
+        {
+            RuleFor(x => x.MemberId).NotEmpty();
+            RuleFor(x => x.WorkoutSessionId).GreaterThan(0);
+        }
+    }
+
     internal class UpdateWorkoutSessionDtoValidator : AbstractValidator<UpdateWorkoutSessionDto>
     {
         public UpdateWorkoutSessionDtoValidator()
         {
             RuleFor(x => x.Id).GreaterThan(0);
+            RuleFor(x => x.BranchId).GreaterThan(0).When(x => x.BranchId.HasValue);
             RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Description).NotEmpty().MaximumLength(500);
             RuleFor(x => x.SessionDate).GreaterThanOrEqualTo(DateTime.UtcNow.Date);
+            RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
             RuleFor(x => x.StartTime).LessThan(x => x.EndTime);
             RuleFor(x => x.MaxParticipants).GreaterThan(0).LessThanOrEqualTo(100);
         }
     }
 }
-

@@ -1,0 +1,54 @@
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-dark text-white">
+        <strong><i class="fas fa-layer-group me-2"></i>SaaS Modules</strong>
+    </div>
+    <div class="list-group list-group-flush">
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="list-group-item text-muted small fw-semibold">ADMIN OPERATIONS</div>
+            <a asp-controller="SaasAdmin" asp-action="Dashboard" class="list-group-item list-group-item-action">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </a>
+            <a asp-controller="SaasAdmin" asp-action="Memberships" class="list-group-item list-group-item-action">
+                <i class="fas fa-id-card me-2"></i>Membership Ops
+            </a>
+            <a asp-controller="AdminMembershipPlans" asp-action="Index" class="list-group-item list-group-item-action">
+                <i class="fas fa-tags me-2"></i>Membership Plans
+            </a>
+            <a asp-controller="SaasAdmin" asp-action="CreateMembership" class="list-group-item list-group-item-action">
+                <i class="fas fa-user-plus me-2"></i>Create Membership
+            </a>
+            <a asp-controller="SaasAdmin" asp-action="Branches" class="list-group-item list-group-item-action">
+                <i class="fas fa-code-branch me-2"></i>Branches
+            </a>
+            <a asp-controller="SaasAdmin" asp-action="Commissions" class="list-group-item list-group-item-action">
+                <i class="fas fa-money-bill-wave me-2"></i>Commissions
+            </a>
+        }
+
+        @if (User.IsInRole("Trainer"))
+        {
+            <div class="list-group-item text-muted small fw-semibold">TRAINER WORKSPACE</div>
+            <a asp-controller="Trainer" asp-action="MyMembers" class="list-group-item list-group-item-action">
+                <i class="fas fa-user-friends me-2"></i>My Members
+            </a>
+            <a asp-controller="Trainer" asp-action="Sessions" class="list-group-item list-group-item-action">
+                <i class="fas fa-calendar-alt me-2"></i>My Sessions
+            </a>
+            <a asp-controller="Trainer" asp-action="Commissions" class="list-group-item list-group-item-action">
+                <i class="fas fa-money-check-dollar me-2"></i>My Commissions
+            </a>
+        }
+
+        @if (User.IsInRole("Member"))
+        {
+            <div class="list-group-item text-muted small fw-semibold">MEMBER PORTAL</div>
+            <a asp-controller="Portal" asp-action="Index" class="list-group-item list-group-item-action">
+                <i class="fas fa-user-circle me-2"></i>My Portal
+            </a>
+            <a asp-controller="Portal" asp-action="MembershipPlans" class="list-group-item list-group-item-action">
+                <i class="fas fa-layer-group me-2"></i>Membership Plans
+            </a>
+        }
+    </div>
+</div>

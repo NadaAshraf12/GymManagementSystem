@@ -9,5 +9,9 @@ public class TrainerConfiguration : IEntityTypeConfiguration<Trainer>
     public void Configure(EntityTypeBuilder<Trainer> builder)
     {
         builder.Property(t => t.Salary).HasColumnType("decimal(18,2)");
+        builder.HasOne(t => t.Branch)
+            .WithMany(b => b.Trainers)
+            .HasForeignKey(t => t.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

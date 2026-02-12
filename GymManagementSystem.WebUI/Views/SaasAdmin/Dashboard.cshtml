@@ -1,0 +1,74 @@
+@model GymManagementSystem.WebUI.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "SaaS Dashboard";
+}
+
+<div class="row">
+    <div class="col-lg-3">
+        <partial name="_SaasSidebar" />
+    </div>
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0"><i class="fas fa-chart-line me-2"></i>SaaS Dashboard</h3>
+            <form method="get" asp-action="Dashboard" class="d-flex gap-2">
+                <select name="branchId" class="form-select">
+                    <option value="">All Branches</option>
+                    @foreach (var b in Model.Branches)
+                    {
+                        if (Model.SelectedBranchId == b.Id)
+                        {
+                            <option value="@b.Id" selected>@b.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@b.Id">@b.Name</option>
+                        }
+                    }
+                </select>
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </form>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Total Revenue</div><h4>@Model.TotalRevenue.ToString("C")</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Membership Revenue</div><h4>@Model.TotalMembershipRevenue.ToString("C")</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Session Revenue</div><h4>@Model.TotalSessionRevenue.ToString("C")</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Add-On Revenue</div><h4>@Model.TotalAddOnRevenue.ToString("C")</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">MRR</div><h4>@Model.MonthlyRecurringRevenue.ToString("C")</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Wallet Balance</div><h4>@Model.TotalWalletBalance.ToString("C")</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Active Memberships</div><h4>@Model.ActiveMemberships</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Expiring Soon (7d)</div><h4>@Model.ExpiringSoonMemberships</h4></div></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Expired</div><h4>@Model.ExpiredMemberships</h4></div></div></div>
+            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Commissions Owed</div><h4>@Model.TotalCommissionsOwed.ToString("C")</h4></div></div></div>
+            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Commissions Paid</div><h4>@Model.TotalCommissionsPaid.ToString("C")</h4></div></div></div>
+            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Wallet Credits</div><h4>@Model.WalletTotalCredits.ToString("C")</h4></div></div></div>
+            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Wallet Debits</div><h4>@Model.WalletTotalDebits.ToString("C")</h4></div></div></div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">Revenue & Commission Chart</div>
+            <div class="card-body">
+                <canvas id="metricsChart" height="90"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('metricsChart');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Membership', 'Session', 'Add-On', 'MRR', 'Wallet'],
+                datasets: [{
+                    label: 'Amount',
+                    data: [@Model.TotalMembershipRevenue, @Model.TotalSessionRevenue, @Model.TotalAddOnRevenue, @Model.MonthlyRecurringRevenue, @Model.TotalWalletBalance],
+                    backgroundColor: ['#0d6efd','#198754','#dc3545','#fd7e14','#6f42c1']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    </script>
+}

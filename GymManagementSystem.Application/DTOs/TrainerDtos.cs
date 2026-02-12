@@ -13,6 +13,7 @@ public class CreateTrainerDto
     public string Experience { get; set; } = string.Empty;
     public decimal Salary { get; set; }
     public string BankAccount { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
     public bool IsActive { get; set; } = true;
 }
 
@@ -28,6 +29,7 @@ public class UpdateTrainerDto
     public string Experience { get; set; } = string.Empty;
     public decimal Salary { get; set; }
     public string BankAccount { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
     public bool IsActive { get; set; } = true;
 }
 
@@ -43,6 +45,7 @@ public class TrainerReadDto
     public string Experience { get; set; } = string.Empty;
     public decimal Salary { get; set; }
     public string BankAccount { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
     public bool IsActive { get; set; } = true;
 }
 
@@ -58,6 +61,7 @@ public class TrainerDto
     public string Experience { get; set; } = string.Empty;
     public decimal Salary { get; set; }
     public string BankAccount { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
     public bool IsActive { get; set; } = true;
 }
 

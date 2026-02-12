@@ -60,6 +60,7 @@ public class TrainerService : ITrainerService
         trainer.PhoneNumber = dto.PhoneNumber;
         trainer.HireDate = DateTime.UtcNow;
         trainer.IsActive = dto.IsActive;
+        trainer.BranchId = dto.BranchId;
         trainer.MustChangePassword = true;
 
         var createResult = await _userManager.CreateAsync(trainer, DefaultPassword);
@@ -87,6 +88,7 @@ public class TrainerService : ITrainerService
         trainer.UserName = dto.Email;
         trainer.PhoneNumber = dto.PhoneNumber;
         trainer.IsActive = dto.IsActive;
+        trainer.BranchId = dto.BranchId;
 
         var updateResult = await _userManager.UpdateAsync(trainer);
         if (!updateResult.Succeeded)
