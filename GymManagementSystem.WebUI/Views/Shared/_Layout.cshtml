@@ -66,17 +66,27 @@
                                     <i class="fas fa-chart-line"></i> SaaS
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="saasDropdown">
+                                    <li><h6 class="dropdown-header">ADMIN OPERATIONS</h6></li>
                                     <li><a class="dropdown-item" asp-controller="SaasAdmin" asp-action="Dashboard">
                                         <i class="fas fa-tachometer-alt"></i> Dashboard
                                     </a></li>
                                     <li><a class="dropdown-item" asp-controller="SaasAdmin" asp-action="Memberships">
-                                        <i class="fas fa-id-card"></i> Membership Ops
+                                        <i class="fas fa-id-card"></i> Memberships
+                                    </a></li>
+                                    <li><a class="dropdown-item" asp-controller="SaasAdmin" asp-action="CreateMembership">
+                                        <i class="fas fa-user-plus"></i> Create Membership
+                                    </a></li>
+                                    <li><a class="dropdown-item" asp-controller="AdminMembershipPlans" asp-action="Index">
+                                        <i class="fas fa-tags"></i> Membership Plans
                                     </a></li>
                                     <li><a class="dropdown-item" asp-controller="SaasAdmin" asp-action="Branches">
                                         <i class="fas fa-code-branch"></i> Branches
                                     </a></li>
                                     <li><a class="dropdown-item" asp-controller="SaasAdmin" asp-action="Commissions">
                                         <i class="fas fa-money-bill-wave"></i> Commissions
+                                    </a></li>
+                                    <li><a class="dropdown-item" asp-controller="SaasAdmin" asp-action="WalletTopUp">
+                                        <i class="fas fa-wallet"></i> Wallet Management
                                     </a></li>
                                 </ul>
                             </li>
@@ -112,6 +122,9 @@
                                     <li><a class="dropdown-item" asp-controller="Trainer" asp-action="Commissions">
                                         <i class="fas fa-money-bill-wave"></i> My Commissions
                                     </a></li>
+                                    <li><a class="dropdown-item" asp-controller="Trainer" asp-action="FinancialDashboard">
+                                        <i class="fas fa-chart-line"></i> Financial Dashboard
+                                    </a></li>
                                 </ul>
                             </li>
                         }
@@ -120,6 +133,11 @@
                             <li class="nav-item">
                                 <a class="nav-link text-light" asp-controller="Portal" asp-action="Index">
                                     <i class="fas fa-user-circle"></i> Member Portal
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-controller="Member" asp-action="FinancialProfile">
+                                    <i class="fas fa-wallet"></i> Financial Profile
                                 </a>
                             </li>
                         }
@@ -156,6 +174,13 @@
             {
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>@errorMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["Warning"] is string warningMessage)
+            {
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>@warningMessage
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             }

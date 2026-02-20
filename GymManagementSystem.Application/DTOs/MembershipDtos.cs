@@ -71,6 +71,25 @@ public class CreateMembershipDto
     public bool AutoRenewEnabled { get; set; }
     public decimal PaymentAmount { get; set; }
     public decimal WalletAmountToUse { get; set; }
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Proof;
+}
+
+public enum MembershipCreationSource
+{
+    Admin = 0,
+    MemberPortal = 1
+}
+
+public class CreateMembershipCommand
+{
+    public string MemberId { get; set; } = string.Empty;
+    public int PlanId { get; set; }
+    public MembershipCreationSource Source { get; set; }
+    public PaymentMethod PaymentMethod { get; set; }
+    public int? BranchId { get; set; }
+    public DateTime StartDate { get; set; } = DateTime.UtcNow.Date;
+    public bool AutoRenewEnabled { get; set; }
+    public decimal? PaymentAmountOverride { get; set; }
 }
 
 public class RequestSubscriptionDto
@@ -82,7 +101,7 @@ public class RequestSubscriptionDto
     public bool AutoRenewEnabled { get; set; }
     public decimal PaymentAmount { get; set; }
     public decimal WalletAmountToUse { get; set; }
-    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.VodafoneCash;
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Proof;
 }
 
 public class CreateDirectMembershipDto
@@ -94,7 +113,7 @@ public class CreateDirectMembershipDto
     public bool AutoRenewEnabled { get; set; }
     public decimal PaymentAmount { get; set; }
     public decimal WalletAmountToUse { get; set; }
-    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.VodafoneCash;
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
 }
 
 public class UpgradeMembershipDto
@@ -218,9 +237,50 @@ public class RevenueMetricsDto
     public decimal WalletTotalDebits { get; set; }
 }
 
+public class FinancialOverviewDto
+{
+    public int? BranchId { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public decimal WalletCashIn { get; set; }
+    public decimal MembershipRevenue { get; set; }
+    public int ActiveMemberships { get; set; }
+    public List<ExpiringMembershipDto> ExpiringMembershipsSoon { get; set; } = new();
+    public List<RevenuePointDto> RevenueLast30Days { get; set; } = new();
+}
+
+public class TopSellingMembershipPlanDto
+{
+    public int PlanId { get; set; }
+    public string PlanName { get; set; } = string.Empty;
+    public int ActivationCount { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
+public class ExpiringMembershipDto
+{
+    public int MembershipId { get; set; }
+    public string MemberId { get; set; } = string.Empty;
+    public string MemberName { get; set; } = string.Empty;
+    public string PlanName { get; set; } = string.Empty;
+    public DateTime EndDate { get; set; }
+}
+
+public class RevenuePointDto
+{
+    public DateTime Date { get; set; }
+    public decimal Amount { get; set; }
+}
+
 public class UseWalletForSessionBookingDto
 {
     public string MemberId { get; set; } = string.Empty;
     public int WorkoutSessionId { get; set; }
     public decimal Amount { get; set; }
+}
+
+public class AdminWalletTopUpDto
+{
+    public string MemberId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string? Notes { get; set; }
 }

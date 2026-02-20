@@ -50,3 +50,39 @@ public class SessionAttendanceDto
     public DateTime SessionDate { get; set; }
     public List<SessionAttendanceItemDto> Items { get; set; } = new();
 }
+
+public class MemberFinancialProfileDto
+{
+    public decimal WalletBalance { get; set; }
+    public List<MemberWalletLedgerItemDto> WalletTransactions { get; set; } = new();
+    public List<MemberPurchaseItemDto> Purchases { get; set; } = new();
+    public List<MemberMembershipHistoryItemDto> MembershipHistory { get; set; } = new();
+}
+
+public class MemberWalletLedgerItemDto
+{
+    public DateTime Date { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal RunningBalance { get; set; }
+}
+
+public class MemberPurchaseItemDto
+{
+    public DateTime Date { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? InvoiceNumber { get; set; }
+}
+
+public class MemberMembershipHistoryItemDto
+{
+    public int MembershipId { get; set; }
+    public string PlanName { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+}

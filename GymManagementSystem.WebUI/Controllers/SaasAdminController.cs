@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
+using GymManagementSystem.Domain.Enums;
 using GymManagementSystem.WebUI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,7 @@ public class SaasAdminController : BaseController
     private readonly ICommissionService _commissionService;
     private readonly IMembershipService _membershipService;
     private readonly IMembershipPlanService _membershipPlanService;
+    private readonly IWalletService _walletService;
     private readonly IMemberService _memberService;
     private readonly ITrainerService _trainerService;
 
@@ -24,6 +26,7 @@ public class SaasAdminController : BaseController
         ICommissionService commissionService,
         IMembershipService membershipService,
         IMembershipPlanService membershipPlanService,
+        IWalletService walletService,
         IMemberService memberService,
         ITrainerService trainerService,
         Microsoft.AspNetCore.Identity.UserManager<GymManagementSystem.Domain.Entities.ApplicationUser> userManager)
@@ -34,6 +37,7 @@ public class SaasAdminController : BaseController
         _commissionService = commissionService;
         _membershipService = membershipService;
         _membershipPlanService = membershipPlanService;
+        _walletService = walletService;
         _memberService = memberService;
         _trainerService = trainerService;
     }
@@ -41,39 +45,49 @@ public class SaasAdminController : BaseController
     [HttpGet]
     public async Task<IActionResult> Dashboard(int? branchId, CancellationToken cancellationToken)
     {
-        var metrics = await _revenueMetricsService.GetDashboardMetricsAsync(branchId, cancellationToken);
+        var overview = await _revenueMetricsService.GetFinancialOverviewAsync(branchId, cancellationToken);
+        var topPlans = await _revenueMetricsService.GetTopPlansAsync(5, branchId, cancellationToken);
         var branches = await _branchService.GetAllAsync();
 
-        var vm = new AdminDashboardViewModel
+        var vm = new AdminRevenueDashboardViewModel
         {
             SelectedBranchId = branchId,
             Branches = branches.Select(x => new BranchOptionViewModel { Id = x.Id, Name = x.Name }).ToList(),
-            TotalRevenue = metrics.TotalRevenue,
-            TotalSessionRevenue = metrics.TotalSessionRevenue,
-            TotalMembershipRevenue = metrics.TotalMembershipRevenue,
-            TotalAddOnRevenue = metrics.TotalAddOnRevenue,
-            MonthlyRecurringRevenue = metrics.MonthlyRecurringRevenue,
-            TotalWalletBalance = metrics.TotalWalletBalance,
-            ActiveMemberships = metrics.ActiveMemberships,
-            ExpiringSoonMemberships = metrics.ExpiringSoonMemberships,
-            ExpiredMemberships = metrics.ExpiredMemberships,
-            TotalCommissionsOwed = metrics.TotalCommissionsOwed,
-            TotalCommissionsPaid = metrics.TotalCommissionsPaid,
-            WalletTotalCredits = metrics.WalletTotalCredits,
-            WalletTotalDebits = metrics.WalletTotalDebits
+            TotalRevenue = overview.TotalRevenue,
+            WalletCashIn = overview.WalletCashIn,
+            MembershipRevenue = overview.MembershipRevenue,
+            ActiveMemberships = overview.ActiveMemberships,
+            TopPlans = topPlans.Select(p => new TopPlanItemViewModel
+            {
+                PlanId = p.PlanId,
+                PlanName = p.PlanName,
+                ActivationCount = p.ActivationCount,
+                TotalRevenue = p.TotalRevenue
+            }).ToList(),
+            ExpiringSoon = overview.ExpiringMembershipsSoon.Select(x => new ExpiringMembershipItemViewModel
+            {
+                MembershipId = x.MembershipId,
+                MemberName = x.MemberName,
+                PlanName = x.PlanName,
+                EndDate = x.EndDate
+            }).ToList(),
+            RevenueLast30Days = overview.RevenueLast30Days.Select(x => new RevenuePointItemViewModel
+            {
+                Date = x.Date,
+                Amount = x.Amount
+            }).ToList()
         };
 
         return View(vm);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Memberships()
+    public async Task<IActionResult> Memberships(string? status, int? planId, int? branchId)
     {
         var pending = await _membershipService.GetPendingPaymentsAsync();
         var members = await _memberService.GetAllMembersAsync();
         var branches = await _branchService.GetAllAsync();
         var plans = await _membershipPlanService.GetAllAsync();
-        var plansById = plans.ToDictionary(p => p.Id);
         var branchById = branches.ToDictionary(b => b.Id, b => b.Name);
 
         var statusRows = new List<MembershipStatusItemViewModel>();
@@ -86,6 +100,8 @@ public class SaasAdminController : BaseController
                 statusRows.Add(new MembershipStatusItemViewModel
                 {
                     MembershipId = item.Id,
+                    MembershipPlanId = item.MembershipPlanId,
+                    BranchId = item.BranchId,
                     MemberId = member.Id,
                     MemberDisplayName = $"{member.MemberCode} - {member.FirstName} {member.LastName}",
                     MembershipPlanName = item.MembershipPlanName,
@@ -94,17 +110,55 @@ public class SaasAdminController : BaseController
                         : "N/A",
                     Status = item.Status.ToString(),
                     StatusBadgeClass = GetMembershipStatusBadgeClass(item.Status.ToString()),
+                    StartDate = item.StartDate,
                     EndDate = item.EndDate,
+                    PaymentStatus = item.Payments
+                        .OrderByDescending(p => p.Id)
+                        .Select(p => p.PaymentStatus.ToString())
+                        .FirstOrDefault() ?? "N/A",
+                    Source = item.Source.ToString(),
                     WalletBalance = wallet.WalletBalance
                 });
             }
         }
+
+        var filteredRows = statusRows.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            filteredRows = filteredRows.Where(x => x.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+        }
+        if (planId.HasValue && planId.Value > 0)
+        {
+            filteredRows = filteredRows.Where(x => x.MembershipPlanId == planId.Value);
+        }
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            filteredRows = filteredRows.Where(x => x.BranchId == branchId.Value);
+        }
+        statusRows = filteredRows.OrderByDescending(x => x.MembershipId).ToList();
+
         var statusByMembershipId = statusRows
             .OrderByDescending(s => s.MembershipId)
             .ToDictionary(s => s.MembershipId, s => s);
 
         var vm = new MembershipManagementViewModel
         {
+            StatusFilter = status,
+            PlanIdFilter = planId,
+            BranchIdFilter = branchId,
+            Branches = branches.Select(b => new BranchOptionViewModel { Id = b.Id, Name = b.Name }).ToList(),
+            Plans = plans.Select(p => new MembershipPlanOptionViewModel
+            {
+                Id = p.Id,
+                Label = p.Name,
+                Price = p.Price,
+                DurationInDays = p.DurationInDays,
+                DiscountPercentage = p.DiscountPercentage,
+                IncludedSessionsPerMonth = p.IncludedSessionsPerMonth,
+                PriorityBooking = p.PriorityBooking,
+                AddOnAccess = p.AddOnAccess,
+                CommissionRate = $"{p.CommissionRate:0.##}%"
+            }).OrderBy(p => p.Label).ToList(),
             PendingPayments = pending.Select(x => new PendingPaymentItemViewModel
             {
                 PaymentId = x.PaymentId,
@@ -178,17 +232,25 @@ public class SaasAdminController : BaseController
                 return RedirectToAction(nameof(CreateMembership));
             }
 
-            await _membershipService.CreateDirectMembershipAsync(new CreateDirectMembershipDto
+            var result = await _membershipService.CreateMembershipAsync(new CreateMembershipCommand
             {
                 MemberId = form.MemberId,
+                PlanId = form.MembershipPlanId,
+                Source = MembershipCreationSource.Admin,
+                PaymentMethod = form.PaymentMethod,
                 BranchId = form.BranchId,
-                MembershipPlanId = form.MembershipPlanId,
                 StartDate = form.StartDate,
-                PaymentAmount = plan.Price,
-                WalletAmountToUse = 0m
+                AutoRenewEnabled = false
             });
 
-            TempData["Success"] = "Membership created successfully.";
+            if (result.Status == MembershipStatus.PendingPayment)
+            {
+                TempData["Warning"] = "Membership created as pending payment.";
+            }
+            else
+            {
+                TempData["Success"] = "Membership created successfully.";
+            }
             return RedirectToAction(nameof(Memberships));
         }
         catch (Exception ex)
@@ -198,11 +260,48 @@ public class SaasAdminController : BaseController
         }
     }
 
+    [HttpGet]
+    public async Task<IActionResult> WalletTopUp(string? memberId = null)
+    {
+        var vm = await BuildWalletTopUpViewModelAsync(memberId);
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> WalletTopUp(WalletTopUpViewModel form)
+    {
+        try
+        {
+            var result = await _walletService.AdminTopUpWalletAsync(new AdminWalletTopUpDto
+            {
+                MemberId = form.MemberId,
+                Amount = form.Amount,
+                Notes = form.Notes
+            });
+
+            TempData["Success"] = $"Wallet topped up successfully. New balance: {result.WalletBalance:0.00}";
+            return RedirectToAction(nameof(WalletTopUp), new { memberId = form.MemberId });
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+            return RedirectToAction(nameof(WalletTopUp), new { memberId = form.MemberId });
+        }
+    }
+
     private async Task<CreateMembershipViewModel> BuildCreateMembershipViewModelAsync()
     {
         var members = await _memberService.GetAllMembersAsync();
         var branches = await _branchService.GetAllAsync();
         var plans = await _membershipPlanService.GetActiveAsync();
+
+        var walletBalances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        foreach (var member in members)
+        {
+            var wallet = await _membershipService.GetWalletBalanceAsync(member.Id);
+            walletBalances[member.Id] = wallet.WalletBalance;
+        }
 
         return new CreateMembershipViewModel
         {
@@ -227,8 +326,47 @@ public class SaasAdminController : BaseController
                 PriorityBooking = p.PriorityBooking,
                 AddOnAccess = p.AddOnAccess,
                 CommissionRate = $"{p.CommissionRate:0.##}%"
-            }).ToList()
+            }).ToList(),
+            WalletBalancesByMemberId = walletBalances
         };
+    }
+
+    private async Task<WalletTopUpViewModel> BuildWalletTopUpViewModelAsync(string? selectedMemberId)
+    {
+        var members = await _memberService.GetAllMembersAsync();
+        var walletBalances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        foreach (var member in members)
+        {
+            var wallet = await _membershipService.GetWalletBalanceAsync(member.Id);
+            walletBalances[member.Id] = wallet.WalletBalance;
+        }
+
+        return new WalletTopUpViewModel
+        {
+            MemberId = selectedMemberId ?? string.Empty,
+            Members = members.Select(m => new SimpleUserOptionViewModel
+            {
+                Id = m.Id,
+                Display = $"{m.MemberCode} - {m.FirstName} {m.LastName}"
+            }).ToList(),
+            WalletBalancesByMemberId = walletBalances
+        };
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmMembership(int membershipId)
+    {
+        try
+        {
+            await _membershipService.ActivatePendingMembershipAsync(membershipId);
+            TempData["Success"] = "Membership activated successfully.";
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Memberships));
     }
 
     [HttpPost]
@@ -264,6 +402,22 @@ public class SaasAdminController : BaseController
         {
             TempData["Error"] = ex.Message;
         }
+        return RedirectToAction(nameof(Memberships));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult RenewMembership(int membershipId)
+    {
+        TempData["Warning"] = "Renew from this screen is not available yet. Use Create Membership at the correct renewal date.";
+        return RedirectToAction(nameof(Memberships));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult CancelMembership(int membershipId)
+    {
+        TempData["Warning"] = "Cancel action is not available in this workflow yet.";
         return RedirectToAction(nameof(Memberships));
     }
 

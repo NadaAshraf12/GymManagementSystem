@@ -4,6 +4,7 @@ namespace GymManagementSystem.Domain.Enums
     {
         Pending = 0,
         Confirmed = 1,
+        Paid = 1,
         Rejected = 2
     }
 }

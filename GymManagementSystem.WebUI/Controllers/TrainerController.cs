@@ -16,6 +16,7 @@ public class TrainerController : Controller
     private readonly ITrainerDashboardService _trainerDashboardService;
     private readonly ISessionService _sessionService;
     private readonly ICommissionService _commissionService;
+    private readonly ITrainerService _trainerService;
 
     public TrainerController(
         ITrainerAssignmentService assignmentService,
@@ -23,7 +24,8 @@ public class TrainerController : Controller
         INutritionPlanService nutritionPlanService,
         ITrainerDashboardService trainerDashboardService,
         ISessionService sessionService,
-        ICommissionService commissionService)
+        ICommissionService commissionService,
+        ITrainerService trainerService)
     {
         _assignmentService = assignmentService;
         _trainingPlanService = trainingPlanService;
@@ -31,6 +33,7 @@ public class TrainerController : Controller
         _trainerDashboardService = trainerDashboardService;
         _sessionService = sessionService;
         _commissionService = commissionService;
+        _trainerService = trainerService;
     }
 
     [HttpGet]
@@ -79,6 +82,68 @@ public class TrainerController : Controller
                 IsPaid = c.IsPaid,
                 CreatedAt = c.CreatedAt,
                 PaidAt = c.PaidAt
+            }).ToList()
+        };
+
+        return View(vm);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Trainer")]
+    public async Task<IActionResult> FinancialDashboard()
+    {
+        var trainerId = GetCurrentTrainerId();
+        if (string.IsNullOrWhiteSpace(trainerId))
+        {
+            return Forbid();
+        }
+
+        var dto = await _trainerService.GetTrainerFinancialProfileAsync(trainerId);
+        var vm = new TrainerFinancialDashboardViewModel
+        {
+            TrainerName = dto.TrainerName,
+            BranchName = dto.BranchName,
+            TotalGeneratedCommission = dto.TotalGeneratedCommission,
+            TotalPaidCommission = dto.TotalPaidCommission,
+            TotalPendingCommission = dto.TotalPendingCommission,
+            MembershipRevenueFromTrainerMembers = dto.MembershipRevenueFromTrainerMembers,
+            SessionRevenue = dto.SessionRevenue,
+            Commissions = dto.Commissions.Select(c => new TrainerFinancialCommissionRowViewModel
+            {
+                MemberName = c.MemberName,
+                MembershipPlanName = c.MembershipPlanName,
+                Source = c.Source,
+                Amount = c.Amount,
+                Status = c.Status,
+                Date = c.Date
+            }).ToList(),
+            MembershipRevenues = dto.MembershipRevenues.Select(m => new TrainerFinancialMembershipRevenueRowViewModel
+            {
+                MemberName = m.MemberName,
+                PlanName = m.PlanName,
+                RevenueAmount = m.RevenueAmount,
+                StartDate = m.StartDate
+            }).ToList(),
+            SessionEarnings = dto.SessionEarnings.Select(s => new TrainerFinancialSessionEarningRowViewModel
+            {
+                SessionTitle = s.SessionTitle,
+                MemberName = s.MemberName,
+                Price = s.Price,
+                TrainerShare = s.TrainerShare,
+                Date = s.Date
+            }).ToList(),
+            RecentTransactions = dto.RecentTransactions.Select(t => new TrainerFinancialTransactionRowViewModel
+            {
+                Type = t.Type,
+                Description = t.Description,
+                Amount = t.Amount,
+                Status = t.Status,
+                Date = t.Date
+            }).ToList(),
+            CommissionLast30Days = dto.CommissionLast30Days.Select(p => new TrainerFinancialTrendPointViewModel
+            {
+                Date = p.Date,
+                Amount = p.Amount
             }).ToList()
         };
 

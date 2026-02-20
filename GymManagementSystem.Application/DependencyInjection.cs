@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAddOnService, AddOnService>();
+        services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<IPaymentGateway, ManualVodafoneCashGateway>();

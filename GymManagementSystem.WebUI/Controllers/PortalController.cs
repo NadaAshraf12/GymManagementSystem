@@ -1,5 +1,6 @@
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
+using GymManagementSystem.Domain.Enums;
 using GymManagementSystem.WebUI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -272,11 +273,17 @@ public class PortalController : BaseController
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Member")]
-    public async Task<IActionResult> SubscribePlan(int planId)
+    public async Task<IActionResult> SubscribePlan(int planId, PaymentMethod paymentMethod = PaymentMethod.Proof)
     {
         var memberId = _currentUserService.UserId ?? string.Empty;
         try
         {
+            if (paymentMethod == PaymentMethod.Cash)
+            {
+                TempData["Error"] = "Cash is not available in the portal.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var plans = await _membershipPlanService.GetActiveAsync();
             var plan = plans.FirstOrDefault(p => p.Id == planId);
             if (plan == null)
@@ -291,9 +298,12 @@ public class PortalController : BaseController
                 MembershipPlanId = planId,
                 StartDate = DateTime.UtcNow.Date,
                 PaymentAmount = plan.Price,
-                WalletAmountToUse = 0m
+                WalletAmountToUse = 0m,
+                PaymentMethod = paymentMethod
             });
-            TempData["Success"] = "Subscription request submitted. Awaiting admin confirmation.";
+            TempData["Success"] = paymentMethod == PaymentMethod.Wallet
+                ? "Subscription activated successfully."
+                : "Subscription request submitted. Awaiting admin confirmation.";
         }
         catch (Exception ex)
         {

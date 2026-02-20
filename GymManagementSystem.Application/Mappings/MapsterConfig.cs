@@ -6,8 +6,18 @@ namespace GymManagementSystem.Application.Mappings
 {
     public static class MapsterConfig
     {
+        private static readonly object Sync = new();
+        private static bool _registered;
+
         public static void Register()
         {
+            lock (Sync)
+            {
+                if (_registered)
+                {
+                    return;
+                }
+
             TypeAdapterConfig<Member, MemberReadDto>
                 .NewConfig()
                 .IgnoreNonMapped(true)
@@ -550,6 +560,9 @@ namespace GymManagementSystem.Application.Mappings
                 .Map(dest => dest.Price, src => src.Price)
                 .Map(dest => dest.BranchId, src => src.BranchId)
                 .Map(dest => dest.RequiresActiveMembership, src => src.RequiresActiveMembership);
+
+                _registered = true;
+            }
         }
     }
 }

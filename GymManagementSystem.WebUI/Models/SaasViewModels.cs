@@ -1,3 +1,5 @@
+using GymManagementSystem.Domain.Enums;
+
 namespace GymManagementSystem.WebUI.Models;
 
 public class AdminDashboardViewModel
@@ -17,6 +19,41 @@ public class AdminDashboardViewModel
     public decimal TotalCommissionsPaid { get; set; }
     public decimal WalletTotalCredits { get; set; }
     public decimal WalletTotalDebits { get; set; }
+}
+
+public class AdminRevenueDashboardViewModel
+{
+    public int? SelectedBranchId { get; set; }
+    public List<BranchOptionViewModel> Branches { get; set; } = new();
+    public decimal TotalRevenue { get; set; }
+    public decimal WalletCashIn { get; set; }
+    public decimal MembershipRevenue { get; set; }
+    public int ActiveMemberships { get; set; }
+    public List<TopPlanItemViewModel> TopPlans { get; set; } = new();
+    public List<ExpiringMembershipItemViewModel> ExpiringSoon { get; set; } = new();
+    public List<RevenuePointItemViewModel> RevenueLast30Days { get; set; } = new();
+}
+
+public class TopPlanItemViewModel
+{
+    public int PlanId { get; set; }
+    public string PlanName { get; set; } = string.Empty;
+    public int ActivationCount { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
+public class ExpiringMembershipItemViewModel
+{
+    public int MembershipId { get; set; }
+    public string MemberName { get; set; } = string.Empty;
+    public string PlanName { get; set; } = string.Empty;
+    public DateTime EndDate { get; set; }
+}
+
+public class RevenuePointItemViewModel
+{
+    public DateTime Date { get; set; }
+    public decimal Amount { get; set; }
 }
 
 public class BranchOptionViewModel
@@ -151,6 +188,11 @@ public class TrainerCommissionMetricsItemViewModel
 
 public class MembershipManagementViewModel
 {
+    public string? StatusFilter { get; set; }
+    public int? PlanIdFilter { get; set; }
+    public int? BranchIdFilter { get; set; }
+    public List<BranchOptionViewModel> Branches { get; set; } = new();
+    public List<MembershipPlanOptionViewModel> Plans { get; set; } = new();
     public List<PendingPaymentItemViewModel> PendingPayments { get; set; } = new();
     public List<MembershipStatusItemViewModel> ActiveMemberships { get; set; } = new();
     public List<MembershipStatusItemViewModel> FrozenMemberships { get; set; } = new();
@@ -197,13 +239,18 @@ public class ResumeMembershipFormViewModel
 public class MembershipStatusItemViewModel
 {
     public int MembershipId { get; set; }
+    public int MembershipPlanId { get; set; }
+    public int? BranchId { get; set; }
     public string MemberId { get; set; } = string.Empty;
     public string MemberDisplayName { get; set; } = string.Empty;
     public string MembershipPlanName { get; set; } = string.Empty;
     public string BranchName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusBadgeClass { get; set; } = "bg-secondary";
+    public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public string PaymentStatus { get; set; } = "N/A";
+    public string Source { get; set; } = "N/A";
     public decimal WalletBalance { get; set; }
 }
 
@@ -269,9 +316,20 @@ public class CreateMembershipViewModel
     public int MembershipPlanId { get; set; }
     public int? BranchId { get; set; }
     public DateTime StartDate { get; set; } = DateTime.UtcNow.Date;
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
     public List<SimpleUserOptionViewModel> Members { get; set; } = new();
     public List<BranchOptionViewModel> Branches { get; set; } = new();
     public List<MembershipPlanOptionViewModel> Plans { get; set; } = new();
+    public Dictionary<string, decimal> WalletBalancesByMemberId { get; set; } = new();
+}
+
+public class WalletTopUpViewModel
+{
+    public string MemberId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string? Notes { get; set; }
+    public List<SimpleUserOptionViewModel> Members { get; set; } = new();
+    public Dictionary<string, decimal> WalletBalancesByMemberId { get; set; } = new();
 }
 
 public class MembershipPlansAdminIndexViewModel

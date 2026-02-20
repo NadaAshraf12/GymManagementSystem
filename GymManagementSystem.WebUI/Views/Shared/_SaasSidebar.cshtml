@@ -3,50 +3,62 @@
         <strong><i class="fas fa-layer-group me-2"></i>SaaS Modules</strong>
     </div>
     <div class="list-group list-group-flush">
+        @{
+            var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+            var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+            string LinkClass(string controller, string action) =>
+                $"list-group-item list-group-item-action {(string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) && string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase) ? "active bg-dark border-0" : string.Empty)}";
+        }
         @if (User.IsInRole("Admin"))
         {
             <div class="list-group-item text-muted small fw-semibold">ADMIN OPERATIONS</div>
-            <a asp-controller="SaasAdmin" asp-action="Dashboard" class="list-group-item list-group-item-action">
+            <a asp-controller="SaasAdmin" asp-action="Dashboard" class="@LinkClass("SaasAdmin", "Dashboard")">
                 <i class="fas fa-tachometer-alt me-2"></i>Dashboard
             </a>
-            <a asp-controller="SaasAdmin" asp-action="Memberships" class="list-group-item list-group-item-action">
-                <i class="fas fa-id-card me-2"></i>Membership Ops
+            <a asp-controller="SaasAdmin" asp-action="Memberships" class="@LinkClass("SaasAdmin", "Memberships")">
+                <i class="fas fa-id-card me-2"></i>Memberships
             </a>
-            <a asp-controller="AdminMembershipPlans" asp-action="Index" class="list-group-item list-group-item-action">
-                <i class="fas fa-tags me-2"></i>Membership Plans
-            </a>
-            <a asp-controller="SaasAdmin" asp-action="CreateMembership" class="list-group-item list-group-item-action">
+            <a asp-controller="SaasAdmin" asp-action="CreateMembership" class="@LinkClass("SaasAdmin", "CreateMembership")">
                 <i class="fas fa-user-plus me-2"></i>Create Membership
             </a>
-            <a asp-controller="SaasAdmin" asp-action="Branches" class="list-group-item list-group-item-action">
+            <a asp-controller="AdminMembershipPlans" asp-action="Index" class="@LinkClass("AdminMembershipPlans", "Index")">
+                <i class="fas fa-tags me-2"></i>Membership Plans
+            </a>
+            <a asp-controller="SaasAdmin" asp-action="Branches" class="@LinkClass("SaasAdmin", "Branches")">
                 <i class="fas fa-code-branch me-2"></i>Branches
             </a>
-            <a asp-controller="SaasAdmin" asp-action="Commissions" class="list-group-item list-group-item-action">
+            <a asp-controller="SaasAdmin" asp-action="Commissions" class="@LinkClass("SaasAdmin", "Commissions")">
                 <i class="fas fa-money-bill-wave me-2"></i>Commissions
+            </a>
+            <a asp-controller="SaasAdmin" asp-action="WalletTopUp" class="@LinkClass("SaasAdmin", "WalletTopUp")">
+                <i class="fas fa-wallet me-2"></i>Wallet Management
             </a>
         }
 
         @if (User.IsInRole("Trainer"))
         {
             <div class="list-group-item text-muted small fw-semibold">TRAINER WORKSPACE</div>
-            <a asp-controller="Trainer" asp-action="MyMembers" class="list-group-item list-group-item-action">
+            <a asp-controller="Trainer" asp-action="MyMembers" class="@LinkClass("Trainer", "MyMembers")">
                 <i class="fas fa-user-friends me-2"></i>My Members
             </a>
-            <a asp-controller="Trainer" asp-action="Sessions" class="list-group-item list-group-item-action">
+            <a asp-controller="Trainer" asp-action="Sessions" class="@LinkClass("Trainer", "Sessions")">
                 <i class="fas fa-calendar-alt me-2"></i>My Sessions
             </a>
-            <a asp-controller="Trainer" asp-action="Commissions" class="list-group-item list-group-item-action">
+            <a asp-controller="Trainer" asp-action="Commissions" class="@LinkClass("Trainer", "Commissions")">
                 <i class="fas fa-money-check-dollar me-2"></i>My Commissions
+            </a>
+            <a asp-controller="Trainer" asp-action="FinancialDashboard" class="@LinkClass("Trainer", "FinancialDashboard")">
+                <i class="fas fa-chart-line me-2"></i>Financial Dashboard
             </a>
         }
 
         @if (User.IsInRole("Member"))
         {
             <div class="list-group-item text-muted small fw-semibold">MEMBER PORTAL</div>
-            <a asp-controller="Portal" asp-action="Index" class="list-group-item list-group-item-action">
+            <a asp-controller="Portal" asp-action="Index" class="@LinkClass("Portal", "Index")">
                 <i class="fas fa-user-circle me-2"></i>My Portal
             </a>
-            <a asp-controller="Portal" asp-action="MembershipPlans" class="list-group-item list-group-item-action">
+            <a asp-controller="Portal" asp-action="MembershipPlans" class="@LinkClass("Portal", "MembershipPlans")">
                 <i class="fas fa-layer-group me-2"></i>Membership Plans
             </a>
         }

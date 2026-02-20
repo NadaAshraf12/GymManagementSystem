@@ -64,7 +64,8 @@ public class MembershipsController : BaseApiController
             StartDate = dto.StartDate,
             AutoRenewEnabled = dto.AutoRenewEnabled,
             PaymentAmount = dto.PaymentAmount,
-            WalletAmountToUse = dto.WalletAmountToUse
+            WalletAmountToUse = dto.WalletAmountToUse,
+            PaymentMethod = dto.PaymentMethod
         });
         return ApiCreated(result, "Online membership request created successfully.");
     }
@@ -81,7 +82,8 @@ public class MembershipsController : BaseApiController
             StartDate = dto.StartDate,
             AutoRenewEnabled = dto.AutoRenewEnabled,
             PaymentAmount = dto.PaymentAmount,
-            WalletAmountToUse = dto.WalletAmountToUse
+            WalletAmountToUse = dto.WalletAmountToUse,
+            PaymentMethod = dto.PaymentMethod
         });
         return ApiCreated(result, "In-gym membership created successfully.");
     }

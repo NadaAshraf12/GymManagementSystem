@@ -293,6 +293,167 @@ public class RevenueMetricsService : IRevenueMetricsService
         return result;
     }
 
+    public async Task<FinancialOverviewDto> GetFinancialOverviewAsync(int? branchId = null, CancellationToken cancellationToken = default)
+    {
+        var version = await GetMetricsVersionAsync(branchId, cancellationToken);
+        var cacheKey = $"financial-overview:{branchId?.ToString() ?? "all"}:{version}";
+        if (_memoryCache.TryGetValue(cacheKey, out FinancialOverviewDto? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var totalRevenue = await GetTotalRevenueAsync(branchId, cancellationToken);
+        var membershipRevenue = await GetTotalMembershipRevenueAsync(branchId, cancellationToken);
+        var activeMemberships = await GetActiveMembershipCountAsync(branchId, cancellationToken);
+
+        var walletRepo = _unitOfWork.Repository<WalletTransaction>();
+        var walletCashInQuery = walletRepo.Query()
+            .AsNoTracking()
+            .Include(w => w.Member)
+            .Where(w => w.Type == WalletTransactionType.Credit)
+            .Where(w => w.Description.Contains("Source=AdminCash"))
+            .AsQueryable();
+        if (branchId.HasValue)
+        {
+            walletCashInQuery = walletCashInQuery.Where(w => w.Member.BranchId == branchId.Value);
+        }
+
+        var walletCashIn = await walletCashInQuery
+            .Select(w => (decimal?)w.Amount)
+            .SumAsync(cancellationToken) ?? 0m;
+
+        var membershipRepo = _unitOfWork.Repository<Membership>();
+        var now = DateTime.UtcNow;
+        var horizon = now.AddDays(7);
+        var expiringSoon = await membershipRepo.Query()
+            .AsNoTracking()
+            .Include(m => m.Member)
+            .Include(m => m.MembershipPlan)
+            .Where(m => m.Status == MembershipStatus.Active && m.EndDate >= now && m.EndDate <= horizon)
+            .Where(m => !branchId.HasValue || m.BranchId == branchId.Value)
+            .OrderBy(m => m.EndDate)
+            .Take(20)
+            .Select(m => new ExpiringMembershipDto
+            {
+                MembershipId = m.Id,
+                MemberId = m.MemberId,
+                MemberName = m.Member.FirstName + " " + m.Member.LastName,
+                PlanName = m.MembershipPlan.Name,
+                EndDate = m.EndDate
+            })
+            .ToListAsync(cancellationToken);
+
+        var startDate = DateTime.UtcNow.Date.AddDays(-29);
+        var paymentRepo = _unitOfWork.Repository<Payment>();
+        var membershipDaily = await paymentRepo.Query()
+            .AsNoTracking()
+            .Include(p => p.Membership)
+            .Where(p => p.PaymentStatus == PaymentStatus.Confirmed)
+            .Where(p => p.PaidAt.HasValue ? p.PaidAt.Value.Date >= startDate : p.CreatedAt.Date >= startDate)
+            .Where(p => !branchId.HasValue || p.Membership.BranchId == branchId.Value)
+            .Select(p => new
+            {
+                Date = (p.PaidAt ?? p.CreatedAt).Date,
+                Amount = p.Amount
+            })
+            .ToListAsync(cancellationToken);
+
+        var walletDaily = await walletRepo.Query()
+            .AsNoTracking()
+            .Include(w => w.Member)
+            .Where(w => w.CreatedAt.Date >= startDate)
+            .Where(w => w.Type == WalletTransactionType.SessionBooking ||
+                        w.Type == WalletTransactionType.AddOnPurchase ||
+                        w.Type == WalletTransactionType.MembershipRenewal ||
+                        w.Type == WalletTransactionType.MembershipUpgrade)
+            .Where(w => !branchId.HasValue || w.Member.BranchId == branchId.Value)
+            .Select(w => new
+            {
+                Date = w.CreatedAt.Date,
+                Amount = Math.Abs(w.Amount)
+            })
+            .ToListAsync(cancellationToken);
+
+        var points = Enumerable.Range(0, 30)
+            .Select(i => startDate.AddDays(i))
+            .Select(day => new RevenuePointDto
+            {
+                Date = day,
+                Amount =
+                    membershipDaily.Where(x => x.Date == day).Sum(x => x.Amount) +
+                    walletDaily.Where(x => x.Date == day).Sum(x => x.Amount)
+            })
+            .ToList();
+
+        var result = new FinancialOverviewDto
+        {
+            BranchId = branchId,
+            TotalRevenue = totalRevenue,
+            WalletCashIn = walletCashIn,
+            MembershipRevenue = membershipRevenue,
+            ActiveMemberships = activeMemberships,
+            ExpiringMembershipsSoon = expiringSoon,
+            RevenueLast30Days = points
+        };
+
+        _memoryCache.Set(
+            cacheKey,
+            result,
+            new MemoryCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromMinutes(5)
+            });
+
+        return result;
+    }
+
+    public async Task<IReadOnlyList<TopSellingMembershipPlanDto>> GetTopPlansAsync(int top = 5, int? branchId = null, CancellationToken cancellationToken = default)
+    {
+        if (top <= 0)
+        {
+            top = 5;
+        }
+
+        var version = await GetMetricsVersionAsync(branchId, cancellationToken);
+        var cacheKey = $"top-plans:{top}:{branchId?.ToString() ?? "all"}:{version}";
+        if (_memoryCache.TryGetValue(cacheKey, out IReadOnlyList<TopSellingMembershipPlanDto>? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var paymentRepo = _unitOfWork.Repository<Payment>();
+        var list = await paymentRepo.Query()
+            .AsNoTracking()
+            .Include(p => p.Membership)
+            .ThenInclude(m => m.MembershipPlan)
+            .Where(p => p.PaymentStatus == PaymentStatus.Confirmed)
+            .Where(p => p.Membership.Status != MembershipStatus.PendingPayment)
+            .Where(p => !p.Membership.IsDeleted)
+            .Where(p => !branchId.HasValue || p.Membership.BranchId == branchId.Value)
+            .GroupBy(p => new { p.Membership.MembershipPlanId, p.Membership.MembershipPlan.Name })
+            .Select(g => new TopSellingMembershipPlanDto
+            {
+                PlanId = g.Key.MembershipPlanId,
+                PlanName = g.Key.Name,
+                ActivationCount = g.Select(x => x.MembershipId).Distinct().Count(),
+                TotalRevenue = g.Sum(x => x.Amount)
+            })
+            .OrderByDescending(x => x.ActivationCount)
+            .ThenByDescending(x => x.TotalRevenue)
+            .Take(top)
+            .ToListAsync(cancellationToken);
+
+        _memoryCache.Set(
+            cacheKey,
+            list,
+            new MemoryCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromMinutes(5)
+            });
+
+        return list;
+    }
+
     private static decimal NormalizeToMonthly(MembershipPlan plan)
     {
         if (plan.DurationInDays >= 360)

@@ -85,6 +85,91 @@ public class MemberPlansService : IMemberPlansService
         };
     }
 
+    public async Task<MemberFinancialProfileDto> GetMemberFinancialProfileAsync(string memberId)
+    {
+        var walletRepo = _unitOfWork.Repository<WalletTransaction>();
+        var invoiceRepo = _unitOfWork.Repository<Invoice>();
+        var membershipRepo = _unitOfWork.Repository<Membership>();
+
+        var txs = await walletRepo.Query()
+            .AsNoTracking()
+            .Where(t => t.MemberId == memberId)
+            .OrderBy(t => t.CreatedAt)
+            .ThenBy(t => t.Id)
+            .ToListAsync();
+
+        decimal running = 0m;
+        var walletRows = new List<MemberWalletLedgerItemDto>(txs.Count);
+        foreach (var tx in txs)
+        {
+            running += tx.Amount;
+            walletRows.Add(new MemberWalletLedgerItemDto
+            {
+                Date = tx.CreatedAt,
+                Type = tx.Amount >= 0 ? "Credit" : "Debit",
+                Amount = tx.Amount,
+                Description = tx.Description,
+                RunningBalance = running
+            });
+        }
+
+        var invoices = await invoiceRepo.Query()
+            .AsNoTracking()
+            .Where(i => i.MemberId == memberId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+
+        var sessionPurchases = txs
+            .Where(t => t.Type == Domain.Enums.WalletTransactionType.SessionBooking && t.Amount < 0)
+            .Select(t => new MemberPurchaseItemDto
+            {
+                Date = t.CreatedAt,
+                Category = "Session",
+                Amount = Math.Abs(t.Amount),
+                Description = t.Description
+            });
+
+        var invoicePurchases = invoices.Select(i => new MemberPurchaseItemDto
+        {
+            Date = i.CreatedAt,
+            Category = i.Type.Contains("Membership", StringComparison.OrdinalIgnoreCase)
+                ? "Membership"
+                : i.Type.Contains("AddOn", StringComparison.OrdinalIgnoreCase) ? "Add-On" : "Invoice",
+            Amount = i.Amount,
+            Description = i.Type,
+            InvoiceNumber = i.InvoiceNumber
+        });
+
+        var purchases = invoicePurchases
+            .Concat(sessionPurchases)
+            .OrderByDescending(x => x.Date)
+            .ToList();
+
+        var memberships = await membershipRepo.Query()
+            .AsNoTracking()
+            .Include(m => m.MembershipPlan)
+            .Where(m => m.MemberId == memberId)
+            .OrderByDescending(m => m.StartDate)
+            .Select(m => new MemberMembershipHistoryItemDto
+            {
+                MembershipId = m.Id,
+                PlanName = m.MembershipPlan.Name,
+                StartDate = m.StartDate,
+                EndDate = m.EndDate,
+                Status = m.Status.ToString(),
+                Source = m.Source == Domain.Enums.MembershipSource.InGym ? "Admin" : "Portal"
+            })
+            .ToListAsync();
+
+        return new MemberFinancialProfileDto
+        {
+            WalletBalance = running,
+            WalletTransactions = walletRows.OrderByDescending(x => x.Date).ToList(),
+            Purchases = purchases,
+            MembershipHistory = memberships
+        };
+    }
+
     public async Task<bool> ToggleTrainingItemAsync(string memberId, int itemId)
     {
         var itemRepo = _unitOfWork.Repository<TrainingPlanItem>();
