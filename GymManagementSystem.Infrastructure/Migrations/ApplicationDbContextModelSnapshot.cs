@@ -57,7 +57,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("AddOns");
+                    b.ToTable("AddOns", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.ApplicationUser", b =>
@@ -195,7 +195,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Branch", b =>
@@ -230,7 +230,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Branches");
+                    b.ToTable("Branches", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.ChatMessage", b =>
@@ -273,7 +273,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("SenderId", "ReceiverId", "SentAt");
 
-                    b.ToTable("ChatMessages");
+                    b.ToTable("ChatMessages", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Commission", b =>
@@ -334,7 +334,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("TrainerId", "IsPaid");
 
-                    b.ToTable("Commissions");
+                    b.ToTable("Commissions", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Invoice", b =>
@@ -398,7 +398,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("MemberId", "CreatedAt");
 
-                    b.ToTable("Invoices");
+                    b.ToTable("Invoices", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.LoginAudit", b =>
@@ -459,7 +459,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("LoginAudits");
+                    b.ToTable("LoginAudits", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.MemberSession", b =>
@@ -513,7 +513,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("MemberId", "BookingDate", "UsedIncludedSession");
 
-                    b.ToTable("MemberSessions");
+                    b.ToTable("MemberSessions", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Membership", b =>
@@ -587,7 +587,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("MembershipPlanId");
 
-                    b.ToTable("Memberships");
+                    b.ToTable("Memberships", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.MembershipPlan", b =>
@@ -644,7 +644,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("Name", "IsDeleted");
 
-                    b.ToTable("MembershipPlans");
+                    b.ToTable("MembershipPlans", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Notification", b =>
@@ -693,7 +693,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "IsRead", "CreatedAt");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.NutritionPlan", b =>
@@ -735,7 +735,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("TrainerId");
 
-                    b.ToTable("NutritionPlans");
+                    b.ToTable("NutritionPlans", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.NutritionPlanItem", b =>
@@ -784,7 +784,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("NutritionPlanId");
 
-                    b.ToTable("NutritionPlanItems");
+                    b.ToTable("NutritionPlanItems", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.Payment", b =>
@@ -840,7 +840,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("MembershipId", "PaymentStatus", "CreatedAt");
 
-                    b.ToTable("Payments");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.RefreshToken", b =>
@@ -890,7 +890,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.TrainerMemberAssignment", b =>
@@ -932,7 +932,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
                     b.HasIndex("TrainerId", "MemberId")
                         .IsUnique();
 
-                    b.ToTable("TrainerMemberAssignments");
+                    b.ToTable("TrainerMemberAssignments", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.TrainingPlan", b =>
@@ -974,7 +974,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("TrainerId");
 
-                    b.ToTable("TrainingPlans");
+                    b.ToTable("TrainingPlans", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.TrainingPlanItem", b =>
@@ -1021,7 +1021,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("TrainingPlanId");
 
-                    b.ToTable("TrainingPlanItems");
+                    b.ToTable("TrainingPlanItems", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.WalletTransaction", b =>
@@ -1077,7 +1077,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("Type", "CreatedAt");
 
-                    b.ToTable("WalletTransactions");
+                    b.ToTable("WalletTransactions", (string)null);
                 });
 
             modelBuilder.Entity("GymManagementSystem.Domain.Entities.WorkoutSession", b =>
@@ -1136,7 +1136,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("TrainerId");
 
-                    b.ToTable("WorkoutSessions");
+                    b.ToTable("WorkoutSessions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1368,7 +1368,7 @@ namespace GymManagementSystem.Infrastructure.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("AspNetUsers", t =>
+                    b.ToTable("AspNetUsers", null, t =>
                         {
                             t.Property("BranchId")
                                 .HasColumnName("Trainer_BranchId");

@@ -8,6 +8,7 @@ namespace GymManagementSystem.Domain.Enums
         MembershipRenewal = 3,
         Refund = 4,
         MembershipUpgrade = 5,
-        AddOnPurchase = 6
+        AddOnPurchase = 6,
+        Credit = 7
     }
 }

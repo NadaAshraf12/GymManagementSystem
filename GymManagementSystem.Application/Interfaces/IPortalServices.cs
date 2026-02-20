@@ -5,6 +5,7 @@ namespace GymManagementSystem.Application.Interfaces;
 public interface IMemberPlansService
 {
     Task<MemberPlansSnapshotDto> GetSnapshotAsync(string memberId);
+    Task<MemberFinancialProfileDto> GetMemberFinancialProfileAsync(string memberId);
     Task<bool> ToggleTrainingItemAsync(string memberId, int itemId);
     Task<bool> ToggleNutritionItemAsync(string memberId, int itemId);
 }

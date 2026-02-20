@@ -30,4 +30,18 @@ public class AdminDashboardController : BaseApiController
         var data = await _revenueMetricsService.GetRevenuePerBranchByTypeAsync(cancellationToken);
         return ApiOk<IReadOnlyList<RevenueByBranchTypeDto>>(data, "Revenue by branch/type retrieved successfully.");
     }
+
+    [HttpGet("financial-overview")]
+    public async Task<ActionResult<ApiResponse<FinancialOverviewDto>>> GetFinancialOverview([FromQuery] int? branchId, CancellationToken cancellationToken)
+    {
+        var data = await _revenueMetricsService.GetFinancialOverviewAsync(branchId, cancellationToken);
+        return ApiOk(data, "Financial overview retrieved successfully.");
+    }
+
+    [HttpGet("top-plans")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<TopSellingMembershipPlanDto>>>> GetTopPlans([FromQuery] int top = 5, [FromQuery] int? branchId = null, CancellationToken cancellationToken = default)
+    {
+        var data = await _revenueMetricsService.GetTopPlansAsync(top, branchId, cancellationToken);
+        return ApiOk<IReadOnlyList<TopSellingMembershipPlanDto>>(data, "Top plans retrieved successfully.");
+    }
 }

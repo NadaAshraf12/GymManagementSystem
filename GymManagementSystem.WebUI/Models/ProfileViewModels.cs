@@ -37,4 +37,40 @@ namespace GymManagementSystem.WebUI.Models
         [Display(Name = "Profile Picture")]
         public IFormFile? ProfileImageFile { get; set; }
     }
+
+    public class MemberFinancialProfileViewModel
+    {
+        public decimal WalletBalance { get; set; }
+        public List<MemberFinancialWalletRowViewModel> WalletTransactions { get; set; } = new();
+        public List<MemberFinancialPurchaseRowViewModel> Purchases { get; set; } = new();
+        public List<MemberFinancialMembershipRowViewModel> MembershipHistory { get; set; } = new();
+    }
+
+    public class MemberFinancialWalletRowViewModel
+    {
+        public DateTime Date { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public decimal RunningBalance { get; set; }
+    }
+
+    public class MemberFinancialPurchaseRowViewModel
+    {
+        public DateTime Date { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public string? InvoiceNumber { get; set; }
+    }
+
+    public class MemberFinancialMembershipRowViewModel
+    {
+        public int MembershipId { get; set; }
+        public string PlanName { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
+    }
 }

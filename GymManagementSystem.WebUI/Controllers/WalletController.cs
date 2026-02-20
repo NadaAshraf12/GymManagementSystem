@@ -10,11 +10,13 @@ namespace GymManagementSystem.WebUI.Controllers;
 public class WalletController : BaseApiController
 {
     private readonly IMembershipService _membershipService;
+    private readonly IWalletService _walletService;
     private readonly ICurrentUserService _currentUserService;
 
-    public WalletController(IMembershipService membershipService, ICurrentUserService currentUserService)
+    public WalletController(IMembershipService membershipService, IWalletService walletService, ICurrentUserService currentUserService)
     {
         _membershipService = membershipService;
+        _walletService = walletService;
         _currentUserService = currentUserService;
     }
 
@@ -42,6 +44,15 @@ public class WalletController : BaseApiController
     {
         var balance = await _membershipService.AdjustWalletAsync(dto);
         return ApiOk(balance, "Wallet adjusted successfully.");
+    }
+
+    [HttpPost("topup")]
+    [Authorize(Policy = "AdminFullAccess")]
+    [EnableRateLimiting("wallet-adjust")]
+    public async Task<ActionResult<ApiResponse<WalletBalanceDto>>> TopUp(AdminWalletTopUpDto dto)
+    {
+        var balance = await _walletService.AdminTopUpWalletAsync(dto);
+        return ApiOk(balance, "Wallet topped up successfully.");
     }
 
     [HttpGet("transactions/{memberId}")]

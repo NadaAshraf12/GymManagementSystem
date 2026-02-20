@@ -10,6 +10,7 @@ public interface IMembershipService
     Task<MembershipReadDto> RequestSubscriptionAsync(RequestSubscriptionDto dto);
     Task<MembershipReadDto> ActivatePendingMembershipAsync(int membershipId);
     Task<MembershipReadDto> CreateDirectMembershipAsync(CreateDirectMembershipDto dto);
+    Task<MembershipReadDto> CreateMembershipAsync(CreateMembershipCommand command);
     Task<MembershipReadDto> CreateMembershipAsync(CreateMembershipDto dto);
     Task<MembershipReadDto> UpgradeMembershipAsync(UpgradeMembershipDto dto);
     Task<MembershipReadDto> ConfirmPaymentAsync(int paymentId, ConfirmPaymentDto dto);
@@ -44,4 +45,6 @@ public interface IRevenueMetricsService
     Task<decimal> GetWalletTotalBalanceAsync(int? branchId = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RevenueByBranchTypeDto>> GetRevenuePerBranchByTypeAsync(CancellationToken cancellationToken = default);
     Task<RevenueMetricsDto> GetDashboardMetricsAsync(int? branchId = null, CancellationToken cancellationToken = default);
+    Task<FinancialOverviewDto> GetFinancialOverviewAsync(int? branchId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TopSellingMembershipPlanDto>> GetTopPlansAsync(int top = 5, int? branchId = null, CancellationToken cancellationToken = default);
 }

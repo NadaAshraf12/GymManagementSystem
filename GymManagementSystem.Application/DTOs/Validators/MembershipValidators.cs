@@ -42,6 +42,7 @@ internal class CreateMembershipDtoValidator : AbstractValidator<CreateMembership
         RuleFor(x => x.StartDate).Must(d => d.Date >= DateTime.UtcNow.Date)
             .WithMessage("StartDate must be today or in the future.");
         RuleFor(x => x.Source).IsInEnum();
+        RuleFor(x => x.PaymentMethod).IsInEnum();
         RuleFor(x => x.PaymentAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.WalletAmountToUse).GreaterThanOrEqualTo(0);
 
@@ -53,6 +54,33 @@ internal class CreateMembershipDtoValidator : AbstractValidator<CreateMembership
         RuleFor(x => x)
             .Must(x => x.PaymentAmount > 0 || x.WalletAmountToUse > 0)
             .WithMessage("Either payment amount or wallet amount must be greater than 0.");
+    }
+}
+
+internal class CreateMembershipCommandValidator : AbstractValidator<CreateMembershipCommand>
+{
+    public CreateMembershipCommandValidator()
+    {
+        RuleFor(x => x.MemberId).NotEmpty();
+        RuleFor(x => x.PlanId).GreaterThan(0);
+        RuleFor(x => x.Source).IsInEnum();
+        RuleFor(x => x.PaymentMethod).IsInEnum();
+        RuleFor(x => x.BranchId).GreaterThan(0).When(x => x.BranchId.HasValue);
+        RuleFor(x => x.StartDate).Must(d => d.Date >= DateTime.UtcNow.Date)
+            .WithMessage("StartDate must be today or in the future.");
+        RuleFor(x => x.PaymentAmountOverride)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.PaymentAmountOverride.HasValue);
+
+        RuleFor(x => x.PaymentMethod)
+            .Must(m => m is PaymentMethod.Cash or PaymentMethod.Wallet)
+            .When(x => x.Source == MembershipCreationSource.Admin)
+            .WithMessage("Admin memberships only support Cash or Wallet.");
+
+        RuleFor(x => x.PaymentMethod)
+            .Must(m => m is PaymentMethod.Wallet or PaymentMethod.Proof or PaymentMethod.PaymentProof or PaymentMethod.VodafoneCash)
+            .When(x => x.Source == MembershipCreationSource.MemberPortal)
+            .WithMessage("Portal memberships only support Wallet or Payment Proof.");
     }
 }
 
@@ -77,7 +105,7 @@ internal class RequestSubscriptionDtoValidator : AbstractValidator<RequestSubscr
             .WithMessage("StartDate must be today or in the future.");
         RuleFor(x => x.PaymentAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.WalletAmountToUse).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.PaymentMethod).Equal(PaymentMethod.VodafoneCash);
+        RuleFor(x => x.PaymentMethod).IsInEnum();
         RuleFor(x => x)
             .Must(x => x.PaymentAmount > 0 || x.WalletAmountToUse > 0)
             .WithMessage("Either payment amount or wallet amount must be greater than 0.");
@@ -95,7 +123,7 @@ internal class CreateDirectMembershipDtoValidator : AbstractValidator<CreateDire
             .WithMessage("StartDate must be today or in the future.");
         RuleFor(x => x.PaymentAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.WalletAmountToUse).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.PaymentMethod).Equal(PaymentMethod.VodafoneCash);
+        RuleFor(x => x.PaymentMethod).IsInEnum();
         RuleFor(x => x)
             .Must(x => x.PaymentAmount > 0 || x.WalletAmountToUse > 0)
             .WithMessage("Either payment amount or wallet amount must be greater than 0.");
@@ -142,6 +170,16 @@ internal class UseWalletForSessionBookingDtoValidator : AbstractValidator<UseWal
         RuleFor(x => x.MemberId).NotEmpty();
         RuleFor(x => x.WorkoutSessionId).GreaterThan(0);
         RuleFor(x => x.Amount).GreaterThan(0);
+    }
+}
+
+internal class AdminWalletTopUpDtoValidator : AbstractValidator<AdminWalletTopUpDto>
+{
+    public AdminWalletTopUpDtoValidator()
+    {
+        RuleFor(x => x.MemberId).NotEmpty();
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.Notes).MaximumLength(500);
     }
 }
 

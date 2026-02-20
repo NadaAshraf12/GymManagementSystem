@@ -1,6 +1,6 @@
-@model GymManagementSystem.WebUI.Models.AdminDashboardViewModel
+@model GymManagementSystem.WebUI.Models.AdminRevenueDashboardViewModel
 @{
-    ViewData["Title"] = "SaaS Dashboard";
+    ViewData["Title"] = "Financial Dashboard";
 }
 
 <div class="row">
@@ -9,20 +9,13 @@
     </div>
     <div class="col-lg-9">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="mb-0"><i class="fas fa-chart-line me-2"></i>SaaS Dashboard</h3>
+            <h3 class="mb-0"><i class="fas fa-chart-line me-2"></i>Financial Dashboard</h3>
             <form method="get" asp-action="Dashboard" class="d-flex gap-2">
                 <select name="branchId" class="form-select">
                     <option value="">All Branches</option>
                     @foreach (var b in Model.Branches)
                     {
-                        if (Model.SelectedBranchId == b.Id)
-                        {
-                            <option value="@b.Id" selected>@b.Name</option>
-                        }
-                        else
-                        {
-                            <option value="@b.Id">@b.Name</option>
-                        }
+                        <option value="@b.Id" selected="@(Model.SelectedBranchId == b.Id ? "selected" : null)">@b.Name</option>
                     }
                 </select>
                 <button type="submit" class="btn btn-primary">Filter</button>
@@ -30,25 +23,91 @@
         </div>
 
         <div class="row g-3 mb-3">
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Total Revenue</div><h4>@Model.TotalRevenue.ToString("C")</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Membership Revenue</div><h4>@Model.TotalMembershipRevenue.ToString("C")</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Session Revenue</div><h4>@Model.TotalSessionRevenue.ToString("C")</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Add-On Revenue</div><h4>@Model.TotalAddOnRevenue.ToString("C")</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">MRR</div><h4>@Model.MonthlyRecurringRevenue.ToString("C")</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Wallet Balance</div><h4>@Model.TotalWalletBalance.ToString("C")</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Active Memberships</div><h4>@Model.ActiveMemberships</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Expiring Soon (7d)</div><h4>@Model.ExpiringSoonMemberships</h4></div></div></div>
-            <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Expired</div><h4>@Model.ExpiredMemberships</h4></div></div></div>
-            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Commissions Owed</div><h4>@Model.TotalCommissionsOwed.ToString("C")</h4></div></div></div>
-            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Commissions Paid</div><h4>@Model.TotalCommissionsPaid.ToString("C")</h4></div></div></div>
-            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Wallet Credits</div><h4>@Model.WalletTotalCredits.ToString("C")</h4></div></div></div>
-            <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Wallet Debits</div><h4>@Model.WalletTotalDebits.ToString("C")</h4></div></div></div>
+            <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Total Revenue</div><h4>@Model.TotalRevenue.ToString("C")</h4></div></div></div>
+            <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Wallet Cash-In</div><h4>@Model.WalletCashIn.ToString("C")</h4></div></div></div>
+            <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Membership Revenue</div><h4>@Model.MembershipRevenue.ToString("C")</h4></div></div></div>
+            <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted">Active Memberships</div><h4>@Model.ActiveMemberships</h4></div></div></div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header">Revenue & Commission Chart</div>
-            <div class="card-body">
-                <canvas id="metricsChart" height="90"></canvas>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Top 5 Selling Membership Plans</div>
+                    <div class="card-body table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Plan</th>
+                                    <th>Activations</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var p in Model.TopPlans)
+                            {
+                                <tr>
+                                    <td>@p.PlanName</td>
+                                    <td>@p.ActivationCount</td>
+                                    <td>@p.TotalRevenue.ToString("C")</td>
+                                </tr>
+                            }
+                            @if (!Model.TopPlans.Any())
+                            {
+                                <tr><td colspan="3" class="text-muted text-center">No data.</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Expiring Memberships (Next 7 Days)</div>
+                    <div class="card-body table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Plan</th>
+                                    <th>End Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var x in Model.ExpiringSoon)
+                            {
+                                <tr>
+                                    <td>@x.MemberName</td>
+                                    <td>@x.PlanName</td>
+                                    <td><span class="badge bg-warning text-dark">@x.EndDate.ToString("yyyy-MM-dd")</span></td>
+                                </tr>
+                            }
+                            @if (!Model.ExpiringSoon.Any())
+                            {
+                                <tr><td colspan="3" class="text-muted text-center">No expiring memberships.</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header">Revenue by Plan</div>
+                    <div class="card-body">
+                        <canvas id="planRevenueChart" height="160"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header">Revenue Last 30 Days</div>
+                    <div class="card-body">
+                        <canvas id="dailyRevenueChart" height="160"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -57,18 +116,27 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const ctx = document.getElementById('metricsChart');
-        new Chart(ctx, {
+        const topPlans = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Model.TopPlans.Select(x => new { planName = x.PlanName, totalRevenue = x.TotalRevenue })));
+        const daily = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Model.RevenueLast30Days.Select(x => new { date = x.Date.ToString("yyyy-MM-dd"), amount = x.Amount })));
+
+        new Chart(document.getElementById('planRevenueChart'), {
             type: 'bar',
             data: {
-                labels: ['Membership', 'Session', 'Add-On', 'MRR', 'Wallet'],
-                datasets: [{
-                    label: 'Amount',
-                    data: [@Model.TotalMembershipRevenue, @Model.TotalSessionRevenue, @Model.TotalAddOnRevenue, @Model.MonthlyRecurringRevenue, @Model.TotalWalletBalance],
-                    backgroundColor: ['#0d6efd','#198754','#dc3545','#fd7e14','#6f42c1']
-                }]
+                labels: topPlans.map(x => x.planName),
+                datasets: [{ data: topPlans.map(x => x.totalRevenue), backgroundColor: '#0d6efd' }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            options: { plugins: { legend: { display: false } }, responsive: true }
+        });
+
+        new Chart(document.getElementById('dailyRevenueChart'), {
+            type: 'line',
+            data: {
+                labels: daily.map(x => x.date),
+                datasets: [{ data: daily.map(x => x.amount), borderColor: '#198754', tension: 0.3, fill: false }]
+            },
+            options: { plugins: { legend: { display: false } }, responsive: true }
         });
     </script>
 }

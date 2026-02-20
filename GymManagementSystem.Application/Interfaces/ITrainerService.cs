@@ -9,5 +9,6 @@ public interface ITrainerService
     Task<OperationResultDto> CreateAsync(CreateTrainerDto dto);
     Task<OperationResultDto> UpdateAsync(UpdateTrainerDto dto);
     Task<OperationResultDto> DeleteAsync(string id);
+    Task<TrainerFinancialProfileDto> GetTrainerFinancialProfileAsync(string trainerId);
 }
 

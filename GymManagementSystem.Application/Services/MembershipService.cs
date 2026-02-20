@@ -81,91 +81,37 @@ public class MembershipService : IMembershipService
 
     public async Task<MembershipReadDto> CreateMembershipAsync(CreateMembershipDto dto)
     {
-        // Backward-compatible wrapper: keep old entrypoint while routing to explicit flows.
-        if (dto.Source == MembershipSource.InGym)
-        {
-            return await CreateDirectMembershipAsync(new CreateDirectMembershipDto
-            {
-                MemberId = dto.MemberId,
-                BranchId = dto.BranchId,
-                MembershipPlanId = dto.MembershipPlanId,
-                StartDate = dto.StartDate,
-                AutoRenewEnabled = dto.AutoRenewEnabled,
-                PaymentAmount = dto.PaymentAmount,
-                WalletAmountToUse = dto.WalletAmountToUse
-            });
-        }
+        var source = dto.Source == MembershipSource.InGym
+            ? MembershipCreationSource.Admin
+            : MembershipCreationSource.MemberPortal;
+        var paymentMethod = NormalizePaymentMethod(source, dto.PaymentMethod, dto.WalletAmountToUse);
 
-        return await RequestSubscriptionAsync(new RequestSubscriptionDto
+        return await CreateMembershipAsync(new CreateMembershipCommand
         {
             MemberId = dto.MemberId,
+            PlanId = dto.MembershipPlanId,
+            Source = source,
+            PaymentMethod = paymentMethod,
             BranchId = dto.BranchId,
-            MembershipPlanId = dto.MembershipPlanId,
             StartDate = dto.StartDate,
             AutoRenewEnabled = dto.AutoRenewEnabled,
-            PaymentAmount = dto.PaymentAmount,
-            WalletAmountToUse = dto.WalletAmountToUse
+            PaymentAmountOverride = dto.PaymentAmount
         });
     }
 
     public async Task<MembershipReadDto> RequestSubscriptionAsync(RequestSubscriptionDto dto)
     {
-        await EnsureCanRequestSubscriptionAsync(dto.MemberId);
-
-        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        var paymentMethod = NormalizePaymentMethod(MembershipCreationSource.MemberPortal, dto.PaymentMethod, dto.WalletAmountToUse);
+        return await CreateMembershipAsync(new CreateMembershipCommand
         {
-            var (member, plan, walletToUse) = await ValidateAndPrepareMembershipContextAsync(
-                dto.MemberId,
-                dto.MembershipPlanId,
-                dto.BranchId,
-                dto.WalletAmountToUse);
-
-            await EnsureNoCommerciallyOpenMembershipAsync(dto.MemberId);
-
-            var membership = new Membership
-            {
-                MemberId = dto.MemberId,
-                BranchId = dto.BranchId ?? member.BranchId,
-                MembershipPlanId = dto.MembershipPlanId,
-                StartDate = dto.StartDate.Date,
-                EndDate = dto.StartDate.Date.AddDays(plan.DurationInDays),
-                Source = MembershipSource.Online,
-                Status = MembershipStatus.PendingPayment,
-                AutoRenewEnabled = dto.AutoRenewEnabled,
-                TotalPaid = 0,
-                RemainingBalanceUsedFromWallet = walletToUse
-            };
-
-            var membershipRepo = _unitOfWork.Repository<Membership>();
-            await membershipRepo.AddAsync(membership);
-            await _unitOfWork.SaveChangesAsync();
-
-            if (walletToUse > 0)
-            {
-                await AddWalletTransactionAsync(
-                    dto.MemberId,
-                    -walletToUse,
-                    WalletTransactionType.MembershipRenewal,
-                    membership.Id,
-                    $"Wallet reserved for pending membership #{membership.Id}.");
-            }
-
-            var paymentRepo = _unitOfWork.Repository<Payment>();
-            await paymentRepo.AddAsync(new Payment
-            {
-                MembershipId = membership.Id,
-                Amount = dto.PaymentAmount,
-                PaymentMethod = dto.PaymentMethod,
-                PaymentStatus = PaymentStatus.Pending,
-                PaidAt = null,
-                ConfirmedByAdminId = null
-            });
-
-            await _unitOfWork.SaveChangesAsync();
-            await SyncWalletProjectionAsync(member);
-            await _unitOfWork.SaveChangesAsync();
-
-            return await GetMembershipWithPaymentsAsync(membership.Id);
+            MemberId = dto.MemberId,
+            PlanId = dto.MembershipPlanId,
+            Source = MembershipCreationSource.MemberPortal,
+            PaymentMethod = paymentMethod,
+            BranchId = dto.BranchId,
+            StartDate = dto.StartDate,
+            AutoRenewEnabled = dto.AutoRenewEnabled,
+            PaymentAmountOverride = dto.PaymentAmount
         });
     }
 
@@ -214,62 +160,120 @@ public class MembershipService : IMembershipService
 
     public async Task<MembershipReadDto> CreateDirectMembershipAsync(CreateDirectMembershipDto dto)
     {
-        await _authorizationService.EnsureAdminFullAccessAsync();
+        var paymentMethod = NormalizePaymentMethod(MembershipCreationSource.Admin, dto.PaymentMethod, dto.WalletAmountToUse);
+        return await CreateMembershipAsync(new CreateMembershipCommand
+        {
+            MemberId = dto.MemberId,
+            PlanId = dto.MembershipPlanId,
+            Source = MembershipCreationSource.Admin,
+            PaymentMethod = paymentMethod,
+            BranchId = dto.BranchId,
+            StartDate = dto.StartDate,
+            AutoRenewEnabled = dto.AutoRenewEnabled,
+            PaymentAmountOverride = dto.PaymentAmount
+        });
+    }
+
+    public async Task<MembershipReadDto> CreateMembershipAsync(CreateMembershipCommand command)
+    {
+        if (command.Source == MembershipCreationSource.Admin)
+        {
+            await _authorizationService.EnsureAdminFullAccessAsync();
+        }
+        else
+        {
+            await EnsureCanRequestSubscriptionAsync(command.MemberId);
+        }
 
         return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            var (member, plan, walletToUse) = await ValidateAndPrepareMembershipContextAsync(
-                dto.MemberId,
-                dto.MembershipPlanId,
-                dto.BranchId,
-                dto.WalletAmountToUse);
+            var (member, plan, _) = await ValidateAndPrepareMembershipContextAsync(
+                command.MemberId,
+                command.PlanId,
+                command.BranchId,
+                0m);
 
-            await EnsureNoCommerciallyOpenMembershipAsync(dto.MemberId);
+            await EnsureNoCommerciallyOpenMembershipAsync(command.MemberId);
+
+            var method = NormalizePaymentMethod(command.Source, command.PaymentMethod, 0m);
+            var effectivePrice = CalculateEffectivePrice(plan);
+            var isPaid = method is PaymentMethod.Cash or PaymentMethod.Wallet;
+            var paymentAmount = method == PaymentMethod.Wallet
+                ? effectivePrice
+                : (command.PaymentAmountOverride ?? effectivePrice);
+
+            if (command.Source == MembershipCreationSource.Admin && method == PaymentMethod.Proof)
+            {
+                throw new AppValidationException("Admin creation supports only Cash or Wallet.");
+            }
+
+            if (command.Source == MembershipCreationSource.MemberPortal && method == PaymentMethod.Cash)
+            {
+                throw new AppValidationException("Portal subscription does not allow Cash.");
+            }
+
+            if (method == PaymentMethod.Wallet)
+            {
+                var balance = await CalculateWalletBalanceAsync(member.Id);
+                if (balance < effectivePrice)
+                {
+                    throw new AppValidationException("Insufficient wallet balance.");
+                }
+            }
+
+            if (isPaid && paymentAmount < effectivePrice)
+            {
+                throw new AppValidationException("Payment is insufficient for this membership plan.");
+            }
 
             var membership = new Membership
             {
-                MemberId = dto.MemberId,
-                BranchId = dto.BranchId ?? member.BranchId,
-                MembershipPlanId = dto.MembershipPlanId,
-                StartDate = dto.StartDate.Date,
-                EndDate = dto.StartDate.Date.AddDays(plan.DurationInDays),
-                Source = MembershipSource.InGym,
-                Status = MembershipStatus.Active,
-                AutoRenewEnabled = dto.AutoRenewEnabled,
+                MemberId = command.MemberId,
+                BranchId = command.BranchId ?? member.BranchId,
+                MembershipPlanId = command.PlanId,
+                StartDate = command.StartDate.Date,
+                EndDate = command.StartDate.Date.AddDays(plan.DurationInDays),
+                Source = command.Source == MembershipCreationSource.Admin ? MembershipSource.InGym : MembershipSource.Online,
+                Status = isPaid ? MembershipStatus.Active : MembershipStatus.PendingPayment,
+                AutoRenewEnabled = command.AutoRenewEnabled,
                 TotalPaid = 0,
-                RemainingBalanceUsedFromWallet = walletToUse
+                RemainingBalanceUsedFromWallet = 0
             };
 
             var membershipRepo = _unitOfWork.Repository<Membership>();
             await membershipRepo.AddAsync(membership);
             await _unitOfWork.SaveChangesAsync();
 
-            if (walletToUse > 0)
+            if (method == PaymentMethod.Wallet)
             {
                 await AddWalletTransactionAsync(
-                    dto.MemberId,
-                    -walletToUse,
+                    command.MemberId,
+                    -effectivePrice,
                     WalletTransactionType.MembershipRenewal,
                     membership.Id,
-                    $"Wallet used for direct membership #{membership.Id}.");
+                    $"Wallet debit for membership #{membership.Id}.");
             }
 
-            var paymentRepo = _unitOfWork.Repository<Payment>();
             var payment = new Payment
             {
                 MembershipId = membership.Id,
-                Amount = dto.PaymentAmount,
-                PaymentMethod = dto.PaymentMethod,
-                PaymentStatus = PaymentStatus.Confirmed,
-                PaidAt = DateTime.UtcNow,
-                ReviewedAt = DateTime.UtcNow,
-                ConfirmedByAdminId = _currentUserService.UserId
+                Amount = paymentAmount,
+                PaymentMethod = method,
+                PaymentStatus = isPaid ? PaymentStatus.Paid : PaymentStatus.Pending,
+                PaidAt = isPaid ? DateTime.UtcNow : null,
+                ReviewedAt = isPaid ? DateTime.UtcNow : null,
+                ConfirmedByAdminId = command.Source == MembershipCreationSource.Admin ? _currentUserService.UserId : null
             };
 
+            var paymentRepo = _unitOfWork.Repository<Payment>();
             await paymentRepo.AddAsync(payment);
             await _unitOfWork.SaveChangesAsync();
 
-            await ApplyConfirmedPaymentAsync(membership, plan, payment);
+            if (isPaid)
+            {
+                await ApplyConfirmedPaymentAsync(membership, plan, payment);
+            }
+
             await _unitOfWork.SaveChangesAsync();
             await SyncWalletProjectionAsync(member);
             await _unitOfWork.SaveChangesAsync();
@@ -979,8 +983,9 @@ public class MembershipService : IMembershipService
         var paymentAmount = payment.Amount;
         var coveredByWallet = membership.RemainingBalanceUsedFromWallet;
         var totalCovered = paymentAmount + coveredByWallet;
+        var effectivePrice = CalculateEffectivePrice(plan);
 
-        if (totalCovered < plan.Price)
+        if (totalCovered < effectivePrice)
         {
             throw new AppValidationException("Payment is insufficient for this membership plan.");
         }
@@ -988,7 +993,7 @@ public class MembershipService : IMembershipService
         membership.Status = MembershipStatus.Active;
         membership.TotalPaid = paymentAmount;
 
-        var overpaid = totalCovered - plan.Price;
+        var overpaid = totalCovered - effectivePrice;
         if (overpaid > 0)
         {
             await AddWalletTransactionAsync(
@@ -1005,8 +1010,40 @@ public class MembershipService : IMembershipService
                 overpaid);
         }
 
-        await CreateCommissionAsync(membership, plan.Price, CommissionSource.Activation);
+        await CreateCommissionAsync(membership, effectivePrice, CommissionSource.Activation);
         await CreateInvoiceAsync(membership, paymentAmount, "PaymentConfirmed", payment.Id);
+    }
+
+    private static decimal CalculateEffectivePrice(MembershipPlan plan)
+    {
+        var raw = plan.Price - (plan.Price * plan.SessionDiscountPercentage / 100m);
+        return decimal.Round(Math.Max(raw, 0m), 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static PaymentMethod NormalizePaymentMethod(MembershipCreationSource source, PaymentMethod method, decimal walletAmountToUse)
+    {
+        if (walletAmountToUse > 0)
+        {
+            return PaymentMethod.Wallet;
+        }
+
+        if (source == MembershipCreationSource.Admin &&
+            method is PaymentMethod.VodafoneCash or PaymentMethod.Proof or PaymentMethod.PaymentProof)
+        {
+            return PaymentMethod.Cash;
+        }
+
+        if (method == PaymentMethod.VodafoneCash)
+        {
+            return source == MembershipCreationSource.Admin ? PaymentMethod.Cash : PaymentMethod.Proof;
+        }
+
+        if (method == PaymentMethod.PaymentProof)
+        {
+            return PaymentMethod.Proof;
+        }
+
+        return method;
     }
 
     private async Task AddWalletTransactionAsync(string memberId, decimal amount, WalletTransactionType type, int? referenceId, string description)
