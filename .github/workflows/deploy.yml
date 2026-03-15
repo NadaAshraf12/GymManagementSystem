@@ -1,32 +1,33 @@
-name: Deploy ASP.NET Core
+name: Deploy ASP.NET Core to MonsterASP
 
 on:
-  push:
-    branches: [ master ]
+push:
+branches: [ master ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+build-and-deploy:
+runs-on: ubuntu-latest
 
-    steps:
-    - uses: actions/checkout@v3
+steps:
+- name: Checkout repository
+  uses: actions/checkout@v3
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 8.0.x
+- name: Setup .NET
+  uses: actions/setup-dotnet@v3
+  with:
+    dotnet-version: '8.0.x'
 
-    - name: Restore
-      run: dotnet restore
+- name: Restore dependencies
+  run: dotnet restore
 
-    - name: Publish
-      run: dotnet publish GymManagementSystem.WebUI/GymManagementSystem.WebUI.csproj -c Release -o publish
+- name: Publish project
+  run: dotnet publish GymManagementSystem.WebUI/GymManagementSystem.WebUI.csproj -c Release -o publish
 
-    - name: Upload to FTP
-      uses: SamKirkland/FTP-Deploy-Action@v3.1.1
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        local-dir: publish/
-        server-dir: /wwwroot/
+- name: Deploy to FTP server
+  uses: SamKirkland/FTP-Deploy-Action@v3.1.1
+  with:
+    ftp-server: ${{ secrets.FTP_SERVER }}
+    ftp-username: ${{ secrets.FTP_USERNAME }}
+    ftp-password: ${{ secrets.FTP_PASSWORD }}
+    local-dir: publish/
+    server-dir: /wwwroot/
