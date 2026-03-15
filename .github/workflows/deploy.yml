@@ -21,19 +21,21 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      # 1. البحث عن المشروع وعمل Publish مع منع ملفات لينكس
       - name: Publish project
         run: |
           PROJECT_PATH=$(find . -name "GymManagementSystem.WebUI.csproj" | head -n 1)
           echo "Found project at: $PROJECT_PATH"
           dotnet publish "$PROJECT_PATH" -c Release -o publish -p:UseAppHost=false
 
-      # الخطوة دي بترفع ملف app_offline.htm عشان توقف الموقع وتفك القفل من على الملفات
+      # 2. رفع ملف الصيانة لوقف الموقع وفك القفل عن الملفات (Locked Files)
       - name: Put site offline
         run: |
           echo "<html><body><h1>Site is updating, please wait a minute...</h1></body></html>" > app_offline.htm
           curl -T app_offline.htm ftp://${{ secrets.FTP_SERVER }}/wwwroot/app_offline.htm --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
           sleep 5
 
+      # 3. رفع ملفات المشروع الجديد
       - name: Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -43,9 +45,9 @@ jobs:
           local-dir: ./publish/
           server-dir: /wwwroot/
 
-      # الخطوة دي بتمسح ملف app_offline.htm بعد الرفع عشان الموقع يرجع يشتغل
-      # استخدمنا if: always() عشان يمسح الملف حتى لو خطوة الرفع فشلت لا قدر الله
+      # 4. مسح ملف الصيانة لعودة الموقع للعمل (مع تخطي الخطأ لو الأداة مسحته تلقائياً)
       - name: Bring site back online
         if: always()
+        continue-on-error: true
         run: |
-          curl -Q "DELE /wwwroot/app_offline.htm" ftp://${{ secrets.FTP_SERVER }}/ --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
+          curl -Q "DELE wwwroot/app_offline.htm" ftp://${{ secrets.FTP_SERVER }}/ --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
