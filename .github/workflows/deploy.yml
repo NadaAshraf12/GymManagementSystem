@@ -2,7 +2,7 @@ name: Deploy ASP.NET Core to MonsterASP
 
 on:
   push:
-    branches:
+    branches: 
       - master
 
 jobs:
