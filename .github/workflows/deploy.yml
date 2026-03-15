@@ -21,13 +21,12 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      # هذه الخطوة ستطبع لك مسار ملف المشروع الصحيح في السجلات (Logs) إذا حدث خطأ
-      - name: Find Project File Path
-        run: find . -name "*.csproj"
-
-      # ⚠️ تأكد من أن المسار هنا مطابق تماماً (حتى في الحروف الكبيرة والصغيرة) لما هو موجود في مستودعك
+      # الخطوة دي هتدور على الملف لوحدها وتعمله بابلش وتمنع ملفات لينكس اللي بتبوظ الرفع
       - name: Publish project
-        run: dotnet publish GymManagementSystem.WebUI/GymManagementSystem.WebUI.csproj -c Release -o publish
+        run: |
+          PROJECT_PATH=$(find . -name "GymManagementSystem.WebUI.csproj" | head -n 1)
+          echo "Found project at: $PROJECT_PATH"
+          dotnet publish "$PROJECT_PATH" -c Release -o publish -p:UseAppHost=false
 
       - name: Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
