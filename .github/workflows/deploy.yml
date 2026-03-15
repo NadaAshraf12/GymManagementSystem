@@ -27,6 +27,13 @@ jobs:
           echo "Found project at: $PROJECT_PATH"
           dotnet publish "$PROJECT_PATH" -c Release -o publish -p:UseAppHost=false
 
+      # الخطوة دي بترفع ملف app_offline.htm عشان توقف الموقع وتفك القفل من على الملفات
+      - name: Put site offline
+        run: |
+          echo "<html><body><h1>Site is updating, please wait a minute...</h1></body></html>" > app_offline.htm
+          curl -T app_offline.htm ftp://${{ secrets.FTP_SERVER }}/wwwroot/app_offline.htm --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
+          sleep 5
+
       - name: Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -35,3 +42,10 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./publish/
           server-dir: /wwwroot/
+
+      # الخطوة دي بتمسح ملف app_offline.htm بعد الرفع عشان الموقع يرجع يشتغل
+      # استخدمنا if: always() عشان يمسح الملف حتى لو خطوة الرفع فشلت لا قدر الله
+      - name: Bring site back online
+        if: always()
+        run: |
+          curl -Q "DELE /wwwroot/app_offline.htm" ftp://${{ secrets.FTP_SERVER }}/ --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
