@@ -21,21 +21,23 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      # 1. البحث عن المشروع وعمل Publish مع منع ملفات لينكس
       - name: Publish project
         run: |
           PROJECT_PATH=$(find . -name "GymManagementSystem.WebUI.csproj" | head -n 1)
           echo "Found project at: $PROJECT_PATH"
           dotnet publish "$PROJECT_PATH" -c Release -o publish -p:UseAppHost=false
 
-      # 2. رفع ملف الصيانة لوقف الموقع وفك القفل عن الملفات (Locked Files)
+      # تنظيف الـ Secrets من أي Enter أو مسافات ورفع ملف الصيانة
       - name: Put site offline
         run: |
+          SERVER=$(echo "${{ secrets.FTP_SERVER }}" | tr -d '\r\n ' | sed 's/ftp:\/\///g')
+          USER=$(echo "${{ secrets.FTP_USERNAME }}" | tr -d '\r\n ')
+          PASS=$(echo "${{ secrets.FTP_PASSWORD }}" | tr -d '\r\n ')
+          
           echo "<html><body><h1>Site is updating, please wait a minute...</h1></body></html>" > app_offline.htm
-          curl -T app_offline.htm ftp://${{ secrets.FTP_SERVER }}/wwwroot/app_offline.htm --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
+          curl -T app_offline.htm "ftp://$SERVER/wwwroot/app_offline.htm" --user "$USER:$PASS"
           sleep 5
 
-      # 3. رفع ملفات المشروع الجديد
       - name: Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -45,9 +47,13 @@ jobs:
           local-dir: ./publish/
           server-dir: /wwwroot/
 
-      # 4. مسح ملف الصيانة لعودة الموقع للعمل (مع تخطي الخطأ لو الأداة مسحته تلقائياً)
+      # تنظيف الـ Secrets ومسح ملف الصيانة
       - name: Bring site back online
         if: always()
         continue-on-error: true
         run: |
-          curl -Q "DELE wwwroot/app_offline.htm" ftp://${{ secrets.FTP_SERVER }}/ --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
+          SERVER=$(echo "${{ secrets.FTP_SERVER }}" | tr -d '\r\n ' | sed 's/ftp:\/\///g')
+          USER=$(echo "${{ secrets.FTP_USERNAME }}" | tr -d '\r\n ')
+          PASS=$(echo "${{ secrets.FTP_PASSWORD }}" | tr -d '\r\n ')
+          
+          curl -Q "DELE wwwroot/app_offline.htm" "ftp://$SERVER/" --user "$USER:$PASS"
