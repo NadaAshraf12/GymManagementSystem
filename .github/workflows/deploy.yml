@@ -11,23 +11,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
         run: dotnet restore
 
+      # هذه الخطوة ستطبع لك مسار ملف المشروع الصحيح في السجلات (Logs) إذا حدث خطأ
+      - name: Find Project File Path
+        run: find . -name "*.csproj"
+
+      # ⚠️ تأكد من أن المسار هنا مطابق تماماً (حتى في الحروف الكبيرة والصغيرة) لما هو موجود في مستودعك
       - name: Publish project
         run: dotnet publish GymManagementSystem.WebUI/GymManagementSystem.WebUI.csproj -c Release -o publish
 
       - name: Deploy to FTP
-        uses: SamKirkland/FTP-Deploy-Action@v3.1.1
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          ftp-server: ${{ secrets.FTP_SERVER }}
-          ftp-username: ${{ secrets.FTP_USERNAME }}
-          ftp-password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: publish/
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./publish/
+          server-dir: /wwwroot/
