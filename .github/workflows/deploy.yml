@@ -21,7 +21,6 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      # الخطوة دي هتدور على الملف لوحدها وتعمله بابلش وتمنع ملفات لينكس اللي بتبوظ الرفع
       - name: Publish project
         run: |
           PROJECT_PATH=$(find . -name "GymManagementSystem.WebUI.csproj" | head -n 1)
