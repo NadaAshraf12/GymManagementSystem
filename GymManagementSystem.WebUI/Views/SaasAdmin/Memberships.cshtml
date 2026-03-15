@@ -1,0 +1,188 @@
+@model GymManagementSystem.WebUI.Models.MembershipManagementViewModel
+@{
+    ViewData["Title"] = "Memberships";
+}
+
+<div class="row">
+    <div class="col-lg-3">
+        <partial name="_SaasSidebar" />
+    </div>
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0"><i class="fas fa-id-card me-2"></i>Memberships</h3>
+            <a asp-action="CreateMembership" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>Create Membership
+            </a>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Filters</div>
+            <div class="card-body">
+                <form method="get" asp-action="Memberships" class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            <option value="">All</option>
+                            <option value="PendingPayment" selected="@(Model.StatusFilter == "PendingPayment" ? "selected" : null)">PendingPayment</option>
+                            <option value="Active" selected="@(Model.StatusFilter == "Active" ? "selected" : null)">Active</option>
+                            <option value="Frozen" selected="@(Model.StatusFilter == "Frozen" ? "selected" : null)">Frozen</option>
+                            <option value="Expired" selected="@(Model.StatusFilter == "Expired" ? "selected" : null)">Expired</option>
+                            <option value="Cancelled" selected="@(Model.StatusFilter == "Cancelled" ? "selected" : null)">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Plan</label>
+                        <select class="form-select" name="planId">
+                            <option value="">All</option>
+                            @foreach (var p in Model.Plans)
+                            {
+                                <option value="@p.Id" selected="@(Model.PlanIdFilter == p.Id ? "selected" : null)">@p.Label</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Branch</label>
+                        <select class="form-select" name="branchId">
+                            <option value="">All</option>
+                            @foreach (var b in Model.Branches)
+                            {
+                                <option value="@b.Id" selected="@(Model.BranchIdFilter == b.Id ? "selected" : null)">@b.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-dark btn-sm">Apply Filters</button>
+                        <a asp-action="Memberships" class="btn btn-outline-secondary btn-sm ms-2">Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Membership List</div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Payment Status</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.MembershipStatuses)
+                    {
+                        <tr>
+                            <td>@row.MemberDisplayName</td>
+                            <td>@row.MembershipPlanName</td>
+                            <td><span class="badge @row.StatusBadgeClass">@row.Status</span></td>
+                            <td>@row.StartDate.ToString("yyyy-MM-dd")</td>
+                            <td>@row.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td>@row.PaymentStatus</td>
+                            <td>@row.Source</td>
+                            <td>
+                                @if (row.Status == "PendingPayment")
+                                {
+                                    <form asp-action="ConfirmMembership" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="membershipId" value="@row.MembershipId" />
+                                        <button class="btn btn-success btn-sm">Confirm</button>
+                                    </form>
+                                }
+                                else if (row.Status == "Active")
+                                {
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        <form asp-action="RenewMembership" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="membershipId" value="@row.MembershipId" />
+                                            <button class="btn btn-primary btn-sm">Renew</button>
+                                        </form>
+                                        <form asp-action="FreezeMembership" method="post" class="d-inline-flex gap-1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="MembershipId" value="@row.MembershipId" />
+                                            <input class="form-control form-control-sm" type="datetime-local" name="FreezeStartDate" required />
+                                            <button class="btn btn-warning btn-sm">Freeze</button>
+                                        </form>
+                                        <form asp-action="CancelMembership" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="membershipId" value="@row.MembershipId" />
+                                            <button class="btn btn-danger btn-sm">Cancel</button>
+                                        </form>
+                                    </div>
+                                }
+                                else if (row.Status == "Frozen")
+                                {
+                                    <form asp-action="ResumeMembership" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="MembershipId" value="@row.MembershipId" />
+                                        <button class="btn btn-outline-primary btn-sm">Resume</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.MembershipStatuses.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">No memberships match current filters.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Pending Payment Proofs</div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Branch</th>
+                            <th>Amount</th>
+                            <th>Proof</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var p in Model.PendingPayments)
+                    {
+                        <tr>
+                            <td>@p.MemberDisplayName</td>
+                            <td>@p.MembershipPlanName</td>
+                            <td>@p.BranchName</td>
+                            <td>@p.Amount.ToString("C")</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(p.PaymentProofUrl))
+                                {
+                                    <a href="@p.PaymentProofUrl" target="_blank">Open</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No proof</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.PendingPayments.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No pending proofs.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

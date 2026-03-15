@@ -1,0 +1,71 @@
+@model GymManagementSystem.WebUI.Models.CommissionCenterViewModel
+@{
+    ViewData["Title"] = "Commission Center";
+}
+
+<div class="row">
+    <div class="col-lg-3">
+        <partial name="_SaasSidebar" />
+    </div>
+    <div class="col-lg-9">
+        <h3 class="mb-3"><i class="fas fa-money-bill-wave me-2"></i>Commission Center</h3>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Unpaid Commissions</div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>Id</th><th>Trainer</th><th>Member</th><th>Plan</th><th>Branch</th><th>Source</th><th>Status</th><th>%</th><th>Amount</th><th>Created</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var c in Model.UnpaidCommissions)
+                    {
+                        <tr>
+                            <td>@c.Id</td>
+                            <td>@c.TrainerId</td>
+                            <td>@c.MemberName</td>
+                            <td>@c.MembershipPlanName</td>
+                            <td>@(c.BranchId?.ToString() ?? "-")</td>
+                            <td><span class="badge @c.SourceBadgeClass">@c.Source</span></td>
+                            <td><span class="badge @c.StatusBadgeClass">@c.Status</span></td>
+                            <td>@c.Percentage</td>
+                            <td>@c.CalculatedAmount.ToString("C")</td>
+                            <td>@c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>
+                                <form asp-action="MarkCommissionPaid" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="commissionId" value="@c.Id" />
+                                    <button class="btn btn-success btn-sm">Mark Paid</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.UnpaidCommissions.Any())
+                    {
+                        <tr>
+                            <td colspan="11" class="text-center text-muted">No unpaid commissions.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">Trainer Metrics</div>
+            <div class="card-body table-responsive">
+                <table class="table table-bordered">
+                    <thead><tr><th>Trainer</th><th>Total Owed</th><th>Total Paid</th></tr></thead>
+                    <tbody>
+                    @foreach (var m in Model.Metrics)
+                    {
+                        <tr>
+                            <td>@m.TrainerId</td>
+                            <td>@m.TotalOwed.ToString("C")</td>
+                            <td>@m.TotalPaid.ToString("C")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

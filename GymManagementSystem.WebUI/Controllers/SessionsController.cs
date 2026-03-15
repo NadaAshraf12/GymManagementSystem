@@ -1,14 +1,14 @@
 using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
 
 namespace GymManagementSystem.WebUI.Controllers;
 
 [Authorize]
-[ApiController]
-[Route("api/[controller]")]
-public class SessionsController : ControllerBase
+public class SessionsController : BaseApiController
 {
     private readonly ISessionService _sessionService;
     public SessionsController(ISessionService sessionService)
@@ -17,36 +17,83 @@ public class SessionsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Trainer,Admin")]
-    public async Task<ActionResult<WorkoutSessionDto>> Create(CreateWorkoutSessionDto dto)
+    [Authorize(Policy = "TrainerOwnsResource")]
+    public async Task<ActionResult<ApiResponse<WorkoutSessionDto>>> Create(CreateWorkoutSessionDto dto)
     {
         var result = await _sessionService.CreateAsync(dto);
-        return Ok(result);
+        return ApiCreated(result, "Session created successfully.");
     }
 
     [HttpPost("book")]
-    [Authorize(Roles = "Member,Admin,Trainer")]
-    public async Task<IActionResult> Book(BookMemberToSessionDto dto)
+    [Authorize(Policy = "SessionBookingAccess")]
+    public async Task<ActionResult<ApiResponse<object>>> Book(BookMemberToSessionDto dto)
     {
         var ok = await _sessionService.BookMemberAsync(dto);
-        if (!ok) return BadRequest("Cannot book session");
-        return Ok();
+        if (!ok)
+        {
+            return ApiBadRequest<object>("Cannot book session.");
+        }
+
+        return ApiOk<object>(null, "Session booked successfully.");
+    }
+
+    [HttpPost("book-paid")]
+    [Authorize(Policy = "SessionBookingAccess")]
+    public async Task<ActionResult<ApiResponse<SessionBookingResultDto>>> BookPaid(PaidSessionBookingDto dto)
+    {
+        var result = await _sessionService.BookPaidSessionAsync(dto);
+        if (!result.Success)
+        {
+            return ApiBadRequest<SessionBookingResultDto>(result.Message);
+        }
+
+        return ApiOk(result, result.Message);
     }
 
     [HttpDelete("book")]
-    [Authorize(Roles = "Member,Admin,Trainer")]
-    public async Task<IActionResult> Cancel([FromQuery] string memberId, [FromQuery] int workoutSessionId)
+    [Authorize(Policy = "SessionBookingAccess")]
+    public async Task<ActionResult<ApiResponse<object>>> Cancel([FromQuery] string memberId, [FromQuery] int workoutSessionId)
     {
         var ok = await _sessionService.CancelBookingAsync(memberId, workoutSessionId);
-        if (!ok) return NotFound();
-        return Ok();
+        if (!ok)
+        {
+            return ApiNotFound<object>("Booking not found.");
+        }
+
+        return ApiOk<object>(null, "Booking cancelled successfully.");
     }
 
     [HttpGet("trainer/{trainerId}")]
-    public async Task<ActionResult<IReadOnlyList<WorkoutSessionDto>>> GetByTrainer(string trainerId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    [Authorize(Policy = "TrainerOwnsResource")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<WorkoutSessionDto>>>> GetByTrainer(string trainerId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         var list = await _sessionService.GetByTrainerAsync(trainerId, from, to);
-        return Ok(list);
+        return ApiOk<IReadOnlyList<WorkoutSessionDto>>(list, "Sessions retrieved successfully.");
+    }
+
+    [HttpGet("member/{memberId}")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<WorkoutSessionDto>>>> GetForMember(string memberId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var list = await _sessionService.GetAvailableForMemberAsync(memberId, from, to);
+        return ApiOk<IReadOnlyList<WorkoutSessionDto>>(list, "Sessions retrieved successfully.");
+    }
+
+    [HttpGet("member/{memberId}/pricing-preview")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SessionPricingPreviewDto>>>> GetPricingPreview(string memberId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var list = await _sessionService.GetSessionPricingPreviewsAsync(memberId, from, to);
+        return ApiOk<IReadOnlyList<SessionPricingPreviewDto>>(list, "Session pricing preview retrieved successfully.");
+    }
+
+    [HttpPut("{id:int}")]
+    [Authorize(Policy = "TrainerOwnsResource")]
+    public async Task<ActionResult<ApiResponse<WorkoutSessionDto>>> Update(int id, UpdateWorkoutSessionDto dto)
+    {
+        dto.Id = id;
+        var updated = await _sessionService.UpdateAsync(dto);
+        return ApiOk(updated, "Session updated successfully.");
     }
 }
 

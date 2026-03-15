@@ -1,0 +1,208 @@
+@using System.Text.Json
+@model GymManagementSystem.WebUI.Models.TrainerFinancialDashboardViewModel
+@{
+    ViewData["Title"] = "Financial Dashboard";
+    var chartLabels = Model.CommissionLast30Days.Select(x => x.Date.ToString("MM-dd")).ToList();
+    var chartValues = Model.CommissionLast30Days.Select(x => x.Amount).ToList();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Financial Dashboard</h2>
+        <small class="text-muted">@Model.TrainerName | @Model.BranchName</small>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6 col-xl-2">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <div class="text-muted small">Generated Commission</div>
+                <div class="h5 mb-0 text-info">@Model.TotalGeneratedCommission.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-2">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <div class="text-muted small">Paid Commission</div>
+                <div class="h5 mb-0 text-success">@Model.TotalPaidCommission.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-2">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <div class="text-muted small">Pending Commission</div>
+                <div class="h5 mb-0 text-warning">@Model.TotalPendingCommission.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <div class="text-muted small">Membership Revenue</div>
+                <div class="h5 mb-0 text-primary">@Model.MembershipRevenueFromTrainerMembers.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body">
+                <div class="text-muted small">Session Revenue</div>
+                <div class="h5 mb-0 text-secondary">@Model.SessionRevenue.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3 border-0">
+    <div class="card-header bg-dark text-white">Commission Last 30 Days</div>
+    <div class="card-body">
+        <canvas id="commissionChart" height="80"></canvas>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3 border-0">
+    <div class="card-header bg-dark text-white">Commissions</div>
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Plan</th>
+                    <th>Source</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Commissions)
+            {
+                <tr>
+                    <td>@item.MemberName</td>
+                    <td>@item.MembershipPlanName</td>
+                    <td>@item.Source</td>
+                    <td>@item.Amount.ToString("C")</td>
+                    <td>
+                        <span class="badge @(item.Status == "Paid" ? "bg-success" : "bg-warning text-dark")">@item.Status</span>
+                    </td>
+                    <td>@item.Date.ToString("yyyy-MM-dd")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3 border-0">
+    <div class="card-header bg-dark text-white">Membership Revenue</div>
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Plan</th>
+                    <th>Revenue</th>
+                    <th>Start Date</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.MembershipRevenues)
+            {
+                <tr>
+                    <td>@item.MemberName</td>
+                    <td>@item.PlanName</td>
+                    <td>@item.RevenueAmount.ToString("C")</td>
+                    <td>@item.StartDate.ToString("yyyy-MM-dd")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3 border-0">
+    <div class="card-header bg-dark text-white">Session Earnings</div>
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Session</th>
+                    <th>Member</th>
+                    <th>Price</th>
+                    <th>Trainer Share</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.SessionEarnings)
+            {
+                <tr>
+                    <td>@item.SessionTitle</td>
+                    <td>@item.MemberName</td>
+                    <td>@item.Price.ToString("C")</td>
+                    <td>@item.TrainerShare.ToString("C")</td>
+                    <td>@item.Date.ToString("yyyy-MM-dd")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-white">Recent Financial Transactions</div>
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.RecentTransactions)
+            {
+                <tr>
+                    <td>@item.Type</td>
+                    <td>@item.Description</td>
+                    <td>@item.Amount.ToString("C")</td>
+                    <td>@item.Status</td>
+                    <td>@item.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const labels = @Html.Raw(JsonSerializer.Serialize(chartLabels));
+        const values = @Html.Raw(JsonSerializer.Serialize(chartValues));
+        new Chart(document.getElementById("commissionChart"), {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Commission",
+                    data: values,
+                    borderColor: "#0d6efd",
+                    backgroundColor: "rgba(13, 110, 253, 0.2)",
+                    fill: true,
+                    tension: 0.25
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    </script>
+}

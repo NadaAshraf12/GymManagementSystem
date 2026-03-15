@@ -1,0 +1,139 @@
+@model GymManagementSystem.WebUI.Models.MemberFinancialProfileViewModel
+@{
+    ViewData["Title"] = "Financial Profile";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0"><i class="fas fa-wallet me-2"></i>Financial Profile</h3>
+        <span class="badge bg-dark fs-6">Balance: @Model.WalletBalance.ToString("C")</span>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="financialTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#walletTab" type="button" role="tab">Wallet</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#purchasesTab" type="button" role="tab">Purchases</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#membershipsTab" type="button" role="tab">Memberships</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="walletTab" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">Wallet Ledger</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th>Running Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var tx in Model.WalletTransactions)
+                        {
+                            <tr>
+                                <td>@tx.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td><span class="badge @(tx.Type == "Credit" ? "bg-success" : "bg-danger")">@tx.Type</span></td>
+                                <td>@tx.Amount.ToString("C")</td>
+                                <td>@tx.Description</td>
+                                <td>@tx.RunningBalance.ToString("C")</td>
+                            </tr>
+                        }
+                        @if (!Model.WalletTransactions.Any())
+                        {
+                            <tr><td colspan="5" class="text-muted text-center">No wallet transactions.</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="purchasesTab" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">Purchases</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th>Invoice</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var p in Model.Purchases)
+                        {
+                            <tr>
+                                <td>@p.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@p.Category</td>
+                                <td>@p.Amount.ToString("C")</td>
+                                <td>@p.Description</td>
+                                <td>@(string.IsNullOrWhiteSpace(p.InvoiceNumber) ? "-" : p.InvoiceNumber)</td>
+                            </tr>
+                        }
+                        @if (!Model.Purchases.Any())
+                        {
+                            <tr><td colspan="5" class="text-muted text-center">No purchases found.</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="membershipsTab" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">Membership History</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Plan</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Status</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var m in Model.MembershipHistory)
+                        {
+                            var badgeClass = m.Status switch
+                            {
+                                "Active" => "bg-success",
+                                "PendingPayment" => "bg-warning text-dark",
+                                "Expired" => "bg-secondary",
+                                "Cancelled" => "bg-dark",
+                                "Frozen" => "bg-info text-dark",
+                                _ => "bg-secondary"
+                            };
+                            <tr>
+                                <td>@m.PlanName</td>
+                                <td>@m.StartDate.ToString("yyyy-MM-dd")</td>
+                                <td>@m.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td><span class="badge @badgeClass">@m.Status</span></td>
+                                <td>@m.Source</td>
+                            </tr>
+                        }
+                        @if (!Model.MembershipHistory.Any())
+                        {
+                            <tr><td colspan="5" class="text-muted text-center">No membership history.</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

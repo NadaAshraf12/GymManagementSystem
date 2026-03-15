@@ -1,7 +1,7 @@
-@using GymManagementSystem.Application.DTOs
+﻿@using GymManagementSystem.Application.DTOs
 @model List<TrainerAssignmentDetailDto>
 @{
-    var trainer = ViewBag.Trainer as TrainerDto ?? new TrainerDto { Id = string.Empty };
+    var trainer = ViewBag.Trainer as UpdateTrainerDto ?? new UpdateTrainerDto { Id = string.Empty };
     var assignments = Model ?? new List<TrainerAssignmentDetailDto>();
     ViewData["Title"] = "Assignments";
 }

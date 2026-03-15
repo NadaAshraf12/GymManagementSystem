@@ -3,7 +3,6 @@ using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.WebUI.Controllers;
 
@@ -11,11 +10,9 @@ namespace GymManagementSystem.WebUI.Controllers;
 public class TrainerSessionsController : Controller
 {
     private readonly ISessionService _sessionService;
-    private readonly IApplicationDbContext _db;
-    public TrainerSessionsController(ISessionService sessionService, IApplicationDbContext db)
+    public TrainerSessionsController(ISessionService sessionService)
     {
         _sessionService = sessionService;
-        _db = db;
     }
 
     public async Task<IActionResult> Index()

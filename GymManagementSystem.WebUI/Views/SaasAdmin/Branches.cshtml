@@ -1,0 +1,126 @@
+@model GymManagementSystem.WebUI.Models.BranchManagementViewModel
+@{
+    ViewData["Title"] = "Branch Management";
+}
+
+<div class="row">
+    <div class="col-lg-3">
+        <partial name="_SaasSidebar" />
+    </div>
+    <div class="col-lg-9">
+        <h3 class="mb-3"><i class="fas fa-code-branch me-2"></i>Branch Management</h3>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Branch List</div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped">
+                    <thead><tr><th>Id</th><th>Name</th><th>Address</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var b in Model.Branches)
+                    {
+                        <tr>
+                            <td>@b.Id</td>
+                            <td>@b.Name</td>
+                            <td>@b.Address</td>
+                            <td>
+                                @if (b.IsActive) { <span class="badge bg-success">Active</span> }
+                                else { <span class="badge bg-secondary">Inactive</span> }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Create Branch</div>
+                    <div class="card-body">
+                        <form asp-action="CreateBranch" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-2">
+                                <label class="form-label">Name</label>
+                                <input class="form-control" name="Name" required />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Address</label>
+                                <textarea class="form-control" name="Address" rows="3" required></textarea>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="IsActive" checked />
+                                <label class="form-check-label">Active</label>
+                            </div>
+                            <button class="btn btn-primary w-100">Create</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Assign Member</div>
+                    <div class="card-body">
+                        <form asp-action="AssignMember" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-2">
+                                <label class="form-label">Member</label>
+                                <select class="form-select" name="UserId" required>
+                                    <option value="">Select member</option>
+                                    @foreach (var m in Model.Members)
+                                    {
+                                        <option value="@m.Id">@m.Display</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Branch</label>
+                                <select class="form-select" name="BranchId" required>
+                                    <option value="">Select branch</option>
+                                    @foreach (var b in Model.Branches)
+                                    {
+                                        <option value="@b.Id">@b.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <button class="btn btn-dark w-100">Assign Member</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Assign Trainer</div>
+                    <div class="card-body">
+                        <form asp-action="AssignTrainer" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-2">
+                                <label class="form-label">Trainer</label>
+                                <select class="form-select" name="UserId" required>
+                                    <option value="">Select trainer</option>
+                                    @foreach (var t in Model.Trainers)
+                                    {
+                                        <option value="@t.Id">@t.Display</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Branch</label>
+                                <select class="form-select" name="BranchId" required>
+                                    <option value="">Select branch</option>
+                                    @foreach (var b in Model.Branches)
+                                    {
+                                        <option value="@b.Id">@b.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <button class="btn btn-dark w-100">Assign Trainer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

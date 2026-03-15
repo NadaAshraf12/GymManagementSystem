@@ -1,0 +1,73 @@
+*** Begin Patch
+*** Update File: GymManagementSystem.WebUI/Views/Chat/Index.cshtml
+@@
+-        fileInput.addEventListener("change", async () => {
+-            if (!currentPeerId) return;
+-            if (!fileInput.files || fileInput.files.length === 0) return;
+-            const file = fileInput.files[0];
+-            const formData = new FormData();
+-            formData.append("file", file);
+-
+-            try {
+-                const res = await fetch("/Chat/Upload", {
+-                    method: "POST",
+-                    headers: { "RequestVerificationToken": antiForgeryToken },
+-                    body: formData
+-                });
+-
+-                if (!res.ok) {
+-                    console.error("Upload failed");
+-                    return;
+-                }
+-
+-                const data = await res.json();
+-                const url = data.url;
+-                const ext = (file.name.split('.').pop() || "").toLowerCase();
+-                const type = (ext === "jpg" || ext === "jpeg" || ext === "png") ? 1 : 2;
+-                const caption = messageInput.value.trim();
+-
+-                await connection.invoke("SendAttachment", currentPeerId, caption, type, url);
+-                messageInput.value = "";
+-                fileInput.value = "";
+-            } catch (err) {
+-                console.error(err);
+-            }
+-        });
++        fileInput.addEventListener("change", async () => {
++            if (!currentPeerId) return;
++            if (!fileInput.files || fileInput.files.length === 0) return;
++            const file = fileInput.files[0];
++            const formData = new FormData();
++            formData.append("file", file);
++
++            try {
++                const res = await fetch("/Chat/Upload", {
++                    method: "POST",
++                    headers: { "RequestVerificationToken": antiForgeryToken },
++                    body: formData
++                });
++
++                if (!res.ok) {
++                    console.error("Upload failed");
++                    return;
++                }
++
++                const data = await res.json();
++                const url = data.data?.url || data.url;
++                if (!url) {
++                    console.error("Upload response missing URL", data);
++                    return;
++                }
++
++                const ext = (file.name.split('.').pop() || "").toLowerCase();
++                const type = (ext === "jpg" || ext === "jpeg" || ext === "png") ? 1 : 2;
++                const caption = messageInput.value.trim();
++
++                await connection.invoke("SendAttachment", currentPeerId, caption, type, url);
++                messageInput.value = "";
++                fileInput.value = "";
++            } catch (err) {
++                console.error(err);
++            }
++        });
+*** End Patch

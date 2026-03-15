@@ -16,18 +16,21 @@ namespace GymManagementSystem.Application.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IApplicationDbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly JwtSettings _jwtSettings;
 
-    public AuthService(UserManager<ApplicationUser> userManager, IApplicationDbContext context, IOptions<JwtSettings> jwtSettings)
+    public AuthService(UserManager<ApplicationUser> userManager, IUnitOfWork unitOfWork, IOptions<JwtSettings> jwtSettings)
     {
         _userManager = userManager;
-        _context = context;
+        _unitOfWork = unitOfWork;
         _jwtSettings = jwtSettings.Value;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto, string? ipAddress = null, string? userAgent = null)
     {
+        var loginAuditRepo = _unitOfWork.Repository<LoginAudit>();
+        var refreshTokenRepo = _unitOfWork.Repository<RefreshToken>();
+
         var user = await _userManager.FindByEmailAsync(loginDto.Email);
         var loginAudit = new LoginAudit
         {
@@ -44,16 +47,16 @@ public class AuthService : IAuthService
             if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password))
             {
                 loginAudit.FailureReason = "Invalid email or password";
-                _context.LoginAudits.Add(loginAudit);
-                await _context.SaveChangesAsync();
+                await loginAuditRepo.AddAsync(loginAudit);
+                await _unitOfWork.SaveChangesAsync();
                 throw new UnauthorizedAccessException("Invalid email or password");
             }
 
             if (!user.IsActive)
             {
                 loginAudit.FailureReason = "Account is deactivated";
-                _context.LoginAudits.Add(loginAudit);
-                await _context.SaveChangesAsync();
+                await loginAuditRepo.AddAsync(loginAudit);
+                await _unitOfWork.SaveChangesAsync();
                 throw new UnauthorizedAccessException("Your account has been deactivated. Please contact the administrator.");
             }
 
@@ -73,7 +76,7 @@ public class AuthService : IAuthService
                 UserAgent = userAgent
             };
 
-            _context.RefreshTokens.Add(refreshTokenEntity);
+            await refreshTokenRepo.AddAsync(refreshTokenEntity);
 
             // Update login audit for successful login
             loginAudit.IsSuccessful = true;
@@ -81,8 +84,8 @@ public class AuthService : IAuthService
             loginAudit.JwtTokenId = accessToken;
             loginAudit.RefreshTokenId = refreshToken;
 
-            _context.LoginAudits.Add(loginAudit);
-            await _context.SaveChangesAsync();
+            await loginAuditRepo.AddAsync(loginAudit);
+            await _unitOfWork.SaveChangesAsync();
 
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -101,11 +104,11 @@ public class AuthService : IAuthService
         }
         catch (Exception)
         {
-            if (!_context.LoginAudits.Any(la => la.Id == loginAudit.Id))
+            if (!await loginAuditRepo.AnyAsync(la => la.Id == loginAudit.Id))
             {
                 loginAudit.FailureReason = "Unexpected error during login";
-                _context.LoginAudits.Add(loginAudit);
-                await _context.SaveChangesAsync();
+                await loginAuditRepo.AddAsync(loginAudit);
+                await _unitOfWork.SaveChangesAsync();
             }
             throw;
         }
@@ -113,6 +116,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto)
     {
+        var refreshTokenRepo = _unitOfWork.Repository<RefreshToken>();
+
         var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
         if (existingUser != null)
         {
@@ -179,8 +184,8 @@ public class AuthService : IAuthService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.RefreshTokens.Add(refreshTokenEntity);
-            await _context.SaveChangesAsync();
+            await refreshTokenRepo.AddAsync(refreshTokenEntity);
+            await _unitOfWork.SaveChangesAsync();
         }
         catch (Exception tokenEx)
         {
@@ -223,8 +228,9 @@ public class AuthService : IAuthService
 
     public async Task<TokenRefreshResponseDto> RefreshTokenAsync(string refreshToken, string? ipAddress = null, string? userAgent = null)
     {
-        var tokenEntity = await _context.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+        var refreshTokenRepo = _unitOfWork.Repository<RefreshToken>();
+        var tokenEntity = await refreshTokenRepo.FirstOrDefaultAsync(
+            refreshTokenRepo.Query().Where(rt => rt.Token == refreshToken));
 
         if (tokenEntity == null || tokenEntity.IsRevoked || tokenEntity.ExpiryTime <= DateTime.UtcNow)
         {
@@ -256,8 +262,8 @@ public class AuthService : IAuthService
             UserAgent = userAgent
         };
 
-        _context.RefreshTokens.Add(newRefreshTokenEntity);
-        await _context.SaveChangesAsync();
+        await refreshTokenRepo.AddAsync(newRefreshTokenEntity);
+        await _unitOfWork.SaveChangesAsync();
 
         return new TokenRefreshResponseDto
         {
@@ -270,13 +276,14 @@ public class AuthService : IAuthService
 
     public async Task<bool> RevokeRefreshTokenAsync(string refreshToken)
     {
-        var tokenEntity = await _context.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+        var refreshTokenRepo = _unitOfWork.Repository<RefreshToken>();
+        var tokenEntity = await refreshTokenRepo.FirstOrDefaultAsync(
+            refreshTokenRepo.Query().Where(rt => rt.Token == refreshToken));
 
         if (tokenEntity != null)
         {
             tokenEntity.IsRevoked = true;
-            await _context.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
             return true;
         }
 
@@ -285,11 +292,14 @@ public class AuthService : IAuthService
 
     public async Task LogoutAsync(string userId)
     {
+        var loginAuditRepo = _unitOfWork.Repository<LoginAudit>();
+        var refreshTokenRepo = _unitOfWork.Repository<RefreshToken>();
+
         // Update login audit logout time
-        var loginAudit = await _context.LoginAudits
-            .Where(la => la.UserId == userId && la.IsSuccessful && la.LogoutTime == null)
-            .OrderByDescending(la => la.LoginTime)
-            .FirstOrDefaultAsync();
+        var loginAudit = await loginAuditRepo.FirstOrDefaultAsync(
+            loginAuditRepo.Query()
+                .Where(la => la.UserId == userId && la.IsSuccessful && la.LogoutTime == null)
+                .OrderByDescending(la => la.LoginTime));
 
         if (loginAudit != null)
         {
@@ -297,16 +307,16 @@ public class AuthService : IAuthService
         }
 
         // Revoke all active refresh tokens for this user
-        var activeTokens = await _context.RefreshTokens
-            .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiryTime > DateTime.UtcNow)
-            .ToListAsync();
+        var activeTokens = await refreshTokenRepo.ToListAsync(
+            refreshTokenRepo.Query()
+                .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiryTime > DateTime.UtcNow));
 
         foreach (var token in activeTokens)
         {
             token.IsRevoked = true;
         }
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     private async Task<string> GenerateAccessToken(ApplicationUser user)

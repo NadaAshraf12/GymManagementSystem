@@ -1,0 +1,302 @@
+@model GymManagementSystem.WebUI.Models.MemberPortalViewModel
+@{
+    ViewData["Title"] = "Member Portal";
+    var hasActiveMembership = Model.Memberships.Any(m => m.Status == "Active");
+    var hasPendingMembership = Model.Memberships.Any(m => m.Status == "PendingPayment");
+    var canRequestSubscription = !hasActiveMembership && !hasPendingMembership;
+    var latestMembership = Model.Memberships.OrderByDescending(m => m.StartDate).FirstOrDefault();
+}
+
+<div class="row">
+    <div class="col-lg-3">
+        <partial name="_SaasSidebar" />
+    </div>
+    <div class="col-lg-9">
+        <h3 class="mb-3"><i class="fas fa-user-circle me-2"></i>Member Portal</h3>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted">Wallet Balance</div>
+                        <h4>@Model.WalletBalance.ToString("C")</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted">Membership Count</div>
+                        <h4>@Model.Memberships.Count</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted">Unread Notifications</div>
+                        <h4>@Model.Notifications.Count(n => !n.IsRead)</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted">Free Sessions Left (Month)</div>
+                        <h4>@Model.Benefits.RemainingFreeSessionsThisMonth</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Membership Benefits</div>
+            <div class="card-body">
+                @if (Model.Benefits.HasActiveMembership)
+                {
+                    <div class="mb-2"><strong>Plan:</strong> @Model.Benefits.ActivePlanName</div>
+                    <span class="badge bg-success me-2">Discount: @Model.Benefits.SessionDiscountPercentage.ToString("0.##")%</span>
+                    <span class="badge @(Model.Benefits.PriorityBooking ? "bg-primary" : "bg-secondary") me-2">Priority Booking: @(Model.Benefits.PriorityBooking ? "Yes" : "No")</span>
+                    <span class="badge @(Model.Benefits.AddOnAccess ? "bg-info" : "bg-secondary")">Restricted Add-Ons: @(Model.Benefits.AddOnAccess ? "Allowed" : "Not Allowed")</span>
+                }
+                else
+                {
+                    <div class="text-muted">No active membership. Sessions are charged at full wallet price and restricted add-ons are locked.</div>
+                }
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Membership Lifecycle</div>
+            <div class="card-body">
+                @if (canRequestSubscription)
+                {
+                    <div class="alert alert-info mb-3">No active or pending membership found. Choose an available plan to subscribe.</div>
+                    <div class="row g-3">
+                        @foreach (var plan in Model.AvailablePlans)
+                        {
+                            <div class="col-md-6 col-xl-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="mb-0">@plan.Name</h6>
+                                            <span class="badge @(plan.IsActive ? "bg-success" : "bg-secondary")">@(plan.IsActive ? "Active" : "Inactive")</span>
+                                        </div>
+                                        <div class="text-muted small mb-2">@plan.Description</div>
+                                        <div class="small"><strong>Duration:</strong> @plan.DurationInDays days</div>
+                                        <div class="small"><strong>Price:</strong> @plan.Price.ToString("C")</div>
+                                        <div class="small"><strong>Discount:</strong> @plan.DiscountPercentage.ToString("0.##")%</div>
+                                        <div class="small"><strong>Included Sessions:</strong> @plan.IncludedSessionsPerMonth / month</div>
+                                        <div class="small mb-3"><strong>Priority Booking:</strong> @(plan.PriorityBooking ? "Yes" : "No")</div>
+                                        <form asp-action="SubscribePlan" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="planId" value="@plan.Id" />
+                                            <button class="btn btn-primary btn-sm w-100">Subscribe</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (hasPendingMembership)
+                {
+                    <div class="alert alert-warning mb-2">
+                        <strong>Awaiting admin confirmation.</strong> Your subscription request is pending payment review.
+                    </div>
+                    <div>
+                        <span class="me-2"><strong>Plan:</strong> @latestMembership?.MembershipPlanName</span>
+                        <span class="badge @latestMembership?.StatusBadgeClass">@latestMembership?.Status</span>
+                    </div>
+                }
+                else if (hasActiveMembership)
+                {
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div><strong>Active Plan:</strong> @latestMembership?.MembershipPlanName</div>
+                            <div><strong>Expires:</strong> @latestMembership?.EndDate.ToString("yyyy-MM-dd")</div>
+                            <span class="badge @latestMembership?.StatusBadgeClass">@latestMembership?.Status</span>
+                        </div>
+                        <form asp-action="UpgradeMembership" method="post" class="d-flex gap-2">
+                            @Html.AntiForgeryToken()
+                            <select class="form-select form-select-sm" name="newPlanId" required>
+                                <option value="">Select upgrade plan</option>
+                                @foreach (var p in Model.UpgradePlans)
+                                {
+                                    <option value="@p.Id">@p.Label</option>
+                                }
+                            </select>
+                            <button class="btn btn-warning btn-sm">Upgrade</button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <span class="me-2"><strong>Plan:</strong> @latestMembership?.MembershipPlanName</span>
+                        <span class="badge @latestMembership?.StatusBadgeClass">@latestMembership?.Status</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Buy Paid Session</div>
+                    <div class="card-body">
+                        <form asp-action="BuyPaidSession" method="post">
+                            @Html.AntiForgeryToken()
+                            <select class="form-select mb-2" name="workoutSessionId" required>
+                                <option value="">Select paid session</option>
+                                @foreach (var s in Model.AvailablePaidSessions)
+                                {
+                                    var pricingText = s.IncludedApplied
+                                        ? "FREE (Included)"
+                                        : (s.DiscountPercentage > 0
+                                            ? $"{s.EffectivePrice:0.00} after {s.DiscountPercentage:0.##}% discount"
+                                            : $"{s.EffectivePrice:0.00}");
+                                    <option value="@s.Id">@($"{s.Label} - {pricingText}")</option>
+                                }
+                            </select>
+                            <button class="btn btn-primary w-100">Buy Session</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Purchase Add-On</div>
+                    <div class="card-body">
+                        <form asp-action="PurchaseAddOn" method="post">
+                            @Html.AntiForgeryToken()
+                            <select class="form-select mb-2" name="addOnId" required>
+                                <option value="">Select add-on</option>
+                                @foreach (var a in Model.AvailableAddOns)
+                                {
+                                    <option value="@a.Id">@a.Label@(a.RequiresActiveMembership ? " (Active membership required)" : string.Empty)</option>
+                                }
+                            </select>
+                            <button class="btn btn-dark w-100">Purchase</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">My Memberships</div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped">
+                    <thead><tr><th>Plan</th><th>Status</th><th>Start</th><th>End</th><th>Total Paid</th></tr></thead>
+                    <tbody>
+                    @foreach (var m in Model.Memberships)
+                    {
+                        <tr>
+                            <td>@(string.IsNullOrWhiteSpace(m.MembershipPlanName) ? $"Plan #{m.MembershipPlanId}" : m.MembershipPlanName)</td>
+                            <td><span class="badge @m.StatusBadgeClass">@m.Status</span></td>
+                            <td>@m.StartDate.ToString("yyyy-MM-dd")</td>
+                            <td>@m.EndDate.ToString("yyyy-MM-dd")</td>
+                            <td>@m.TotalPaid.ToString("C")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Wallet Transactions</div>
+                    <div class="card-body table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Type</th><th>Amount</th><th>At</th></tr></thead>
+                            <tbody>
+                            @foreach (var t in Model.WalletTransactions)
+                            {
+                                <tr>
+                                    <td>@t.Type</td>
+                                    <td class="@(t.Amount >= 0 ? "text-success" : "text-danger")">@t.Amount.ToString("C")</td>
+                                    <td>@t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                        @{
+                            var totalPages = (int)Math.Ceiling((double)Model.WalletTransactionsTotalCount / Model.WalletTransactionsPageSize);
+                        }
+                        @if (totalPages > 1)
+                        {
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    @for (var p = 1; p <= totalPages; p++)
+                                    {
+                                        <li class="page-item @(p == Model.WalletTransactionsPage ? "active" : "")">
+                                            <a class="page-link" asp-action="Index" asp-route-page="@p">@p</a>
+                                        </li>
+                                    }
+                                </ul>
+                            </nav>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">My Invoices</div>
+                    <div class="card-body table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>No.</th><th>Amount</th><th>Type</th><th></th></tr></thead>
+                            <tbody>
+                            @foreach (var i in Model.Invoices)
+                            {
+                                <tr>
+                                    <td>@i.InvoiceNumber</td>
+                                    <td>@i.Amount.ToString("C")</td>
+                                    <td>@i.Type</td>
+                                    <td>
+                                        <a class="btn btn-outline-primary btn-sm" asp-controller="Invoices" asp-action="Download" asp-route-invoiceId="@i.Id">
+                                            Download
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">Notifications</div>
+            <div class="card-body">
+                @foreach (var n in Model.Notifications)
+                {
+                    <div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">@n.Title</div>
+                            <div class="text-muted small">@n.Message</div>
+                            <div class="text-muted small">@n.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
+                        </div>
+                        <div>
+                            @if (!n.IsRead)
+                            {
+                                <form asp-action="MarkNotificationRead" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="notificationId" value="@n.Id" />
+                                    <button class="btn btn-sm btn-success">Mark Read</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Read</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

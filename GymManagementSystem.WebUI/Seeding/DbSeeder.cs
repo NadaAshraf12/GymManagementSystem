@@ -1,5 +1,7 @@
 using GymManagementSystem.Domain.Entities;
+using GymManagementSystem.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.WebUI.Seeding;
 
@@ -11,6 +13,7 @@ public static class DbSeeder
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         // Ensure roles
         var roles = new[] { "Admin", "Trainer", "Member", "Receptionist" };
@@ -100,6 +103,60 @@ public static class DbSeeder
             {
                 await userManager.AddToRoleAsync(member, "Member");
             }
+        }
+
+        // Ensure default active membership plans for demos
+        var hasPlans = await dbContext.MembershipPlans
+            .AsNoTracking()
+            .AnyAsync();
+
+        if (!hasPlans)
+        {
+            dbContext.MembershipPlans.AddRange(
+                new MembershipPlan
+                {
+                    Name = "Monthly Basic",
+                    Description = "Monthly basic plan.",
+                    DurationInDays = 30,
+                    Price = 500m,
+                    CommissionRate = 10m,
+                    IncludedSessionsPerMonth = 4,
+                    SessionDiscountPercentage = 0m,
+                    PriorityBooking = false,
+                    AddOnAccess = true,
+                    IsActive = true,
+                    IsDeleted = false
+                },
+                new MembershipPlan
+                {
+                    Name = "Monthly Premium",
+                    Description = "Monthly premium plan.",
+                    DurationInDays = 30,
+                    Price = 800m,
+                    CommissionRate = 15m,
+                    IncludedSessionsPerMonth = 8,
+                    SessionDiscountPercentage = 10m,
+                    PriorityBooking = true,
+                    AddOnAccess = true,
+                    IsActive = true,
+                    IsDeleted = false
+                },
+                new MembershipPlan
+                {
+                    Name = "Yearly Premium",
+                    Description = "Yearly premium plan.",
+                    DurationInDays = 365,
+                    Price = 7000m,
+                    CommissionRate = 20m,
+                    IncludedSessionsPerMonth = 10,
+                    SessionDiscountPercentage = 15m,
+                    PriorityBooking = true,
+                    AddOnAccess = true,
+                    IsActive = true,
+                    IsDeleted = false
+                });
+
+            await dbContext.SaveChangesAsync();
         }
     }
 }

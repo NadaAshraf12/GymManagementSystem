@@ -43,5 +43,45 @@ namespace GymManagementSystem.Application.DTOs.Validators
             RuleFor(x => x.Calories).GreaterThanOrEqualTo(0).LessThanOrEqualTo(5000);
         }
     }
+
+    internal class UpdateTrainingPlanDtoValidator : AbstractValidator<UpdateTrainingPlanDto>
+    {
+        public UpdateTrainingPlanDtoValidator()
+        {
+            RuleFor(x => x.Id).GreaterThan(0);
+            RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        }
+    }
+
+    internal class UpdateTrainingPlanItemDtoValidator : AbstractValidator<UpdateTrainingPlanItemDto>
+    {
+        public UpdateTrainingPlanItemDtoValidator()
+        {
+            RuleFor(x => x.Id).GreaterThan(0);
+            RuleFor(x => x.ExerciseName).NotEmpty().MaximumLength(200);
+            RuleFor(x => x.Sets).GreaterThan(0).LessThanOrEqualTo(20);
+            RuleFor(x => x.Reps).GreaterThan(0).LessThanOrEqualTo(100);
+        }
+    }
+
+    internal class UpdateNutritionPlanDtoValidator : AbstractValidator<UpdateNutritionPlanDto>
+    {
+        public UpdateNutritionPlanDtoValidator()
+        {
+            RuleFor(x => x.Id).GreaterThan(0);
+            RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        }
+    }
+
+    internal class UpdateNutritionPlanItemDtoValidator : AbstractValidator<UpdateNutritionPlanItemDto>
+    {
+        public UpdateNutritionPlanItemDtoValidator()
+        {
+            RuleFor(x => x.Id).GreaterThan(0);
+            RuleFor(x => x.MealType).NotEmpty().MaximumLength(100);
+            RuleFor(x => x.FoodDescription).NotEmpty().MaximumLength(500);
+            RuleFor(x => x.Calories).GreaterThanOrEqualTo(0).LessThanOrEqualTo(5000);
+        }
+    }
 }
 

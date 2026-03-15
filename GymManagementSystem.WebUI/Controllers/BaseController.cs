@@ -10,14 +10,16 @@ namespace GymManagementSystem.WebUI.Controllers;
 public class BaseController : Controller
 {
     protected readonly UserManager<ApplicationUser> _userManager;
+    protected readonly SignInManager<ApplicationUser>? _signInManager;
     protected ApplicationUser? _currentUser;
 
-    public BaseController(UserManager<ApplicationUser> userManager)
+    public BaseController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser>? signInManager = null)
     {
         _userManager = userManager;
+        _signInManager = signInManager;
     }
 
-    protected async Task LoadUserDataAsync()
+    protected async Task<bool> LoadUserDataAsync()
     {
         if (User?.Identity?.IsAuthenticated == true)
         {
@@ -27,29 +29,36 @@ public class BaseController : Controller
                 _currentUser = await _userManager.FindByIdAsync(userId);
                 if (_currentUser != null)
                 {
-                    // Check if user is still active
                     if (!_currentUser.IsActive)
                     {
-                        // Sign out the user if they are deactivated
-                        await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                        if (_signInManager != null)
+                        {
+                            await _signInManager.SignOutAsync();
+                        }
+                        else
+                        {
+                            await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                        }
+
                         TempData["Error"] = "Your account has been deactivated. Please contact the administrator.";
-                        return;
+                        return false;
                     }
-                    
+
                     ViewBag.ProfilePicture = _currentUser.ProfilePicture;
                     ViewBag.CurrentUser = _currentUser;
                 }
             }
         }
+
+        return true;
     }
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
         base.OnActionExecuting(context);
-        LoadUserDataAsync().GetAwaiter().GetResult();
-        
-        // If user was deactivated and signed out, redirect to login
-        if (User?.Identity?.IsAuthenticated == false && TempData.ContainsKey("Error"))
+        var isAllowed = LoadUserDataAsync().GetAwaiter().GetResult();
+
+        if (!isAllowed)
         {
             context.Result = RedirectToAction("Login", "Auth");
         }

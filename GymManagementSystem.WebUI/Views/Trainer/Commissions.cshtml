@@ -1,0 +1,66 @@
+@model GymManagementSystem.WebUI.Models.TrainerCommissionDashboardViewModel
+@{
+    ViewData["Title"] = "My Commissions";
+}
+
+<h2>My Commissions</h2>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Total Owed</div>
+                <h4 class="text-warning">@Model.TotalOwed.ToString("C")</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Total Paid</div>
+                <h4 class="text-success">@Model.TotalPaid.ToString("C")</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header">Recent Commissions</div>
+    <div class="card-body table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Membership</th>
+                    <th>Branch</th>
+                    <th>Source</th>
+                    <th>%</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Paid At</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var c in Model.RecentCommissions)
+            {
+                <tr>
+                    <td>@c.Id</td>
+                    <td>#@c.MembershipId</td>
+                    <td>@(c.BranchId?.ToString() ?? "-")</td>
+                    <td>@c.Source</td>
+                    <td>@c.Percentage</td>
+                    <td>@c.CalculatedAmount.ToString("C")</td>
+                    <td>
+                        <span class="badge @(c.IsPaid ? "bg-success" : "bg-warning text-dark")">
+                            @c.Status
+                        </span>
+                    </td>
+                    <td>@c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@(c.PaidAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

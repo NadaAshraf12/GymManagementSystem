@@ -1,13 +1,24 @@
-using GymManagementSystem.Application;
+﻿using GymManagementSystem.Application;
+using GymManagementSystem.Application.DTOs;
 using GymManagementSystem.Domain.Entities;
 using GymManagementSystem.Infrastructure;
 using GymManagementSystem.Infrastructure.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer; 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens; 
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using GymManagementSystem.WebUI.Seeding;
 using FluentValidation.AspNetCore;
+using GymManagementSystem.WebUI.Hubs;
+using GymManagementSystem.WebUI.Middleware;
+using Serilog;
+using System.Security.Claims;
+using GymManagementSystem.WebUI.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace GymManagementSystem.WebUI
 {
@@ -17,8 +28,37 @@ namespace GymManagementSystem.WebUI
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Host.UseSerilog((context, services, loggerConfig) =>
+            {
+                loggerConfig
+                    .ReadFrom.Configuration(context.Configuration)
+                    .ReadFrom.Services(services)
+                    .Enrich.FromLogContext();
+
+                var seqUrl = Environment.GetEnvironmentVariable("SEQ_URL");
+                if (!string.IsNullOrWhiteSpace(seqUrl))
+                {
+                    loggerConfig.WriteTo.Seq(seqUrl);
+                }
+
+                var logFilePath = Environment.GetEnvironmentVariable("LOG_FILE_PATH");
+                if (!string.IsNullOrWhiteSpace(logFilePath))
+                {
+                    loggerConfig.WriteTo.File(
+                        logFilePath,
+                        rollingInterval: RollingInterval.Day,
+                        retainedFileCountLimit: 14);
+                }
+            });
+
             builder.Services.AddApplication(builder.Configuration);
             builder.Services.AddInfrastructure(builder.Configuration);
+            builder.Services.AddMemoryCache();
+            builder.Services.AddHealthChecks();
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<GymManagementSystem.Application.Interfaces.ICurrentUserService, GymManagementSystem.WebUI.Services.CurrentUserService>();
+            builder.Services.AddScoped<GymManagementSystem.Application.Interfaces.IAppAuthorizationService, GymManagementSystem.WebUI.Services.AppAuthorizationService>();
+            builder.Services.AddHostedService<GymManagementSystem.WebUI.Services.MembershipExpirationBackgroundService>();
 
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
@@ -39,35 +79,54 @@ namespace GymManagementSystem.WebUI
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
             });
-            
-
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
+            // ✅ الكود المعدل - Authentication مبسط
+            builder.Services.AddAuthentication()
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings["Issuer"],
-                    ValidAudience = jwtSettings["Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtSettings["Issuer"],
+                        ValidAudience = jwtSettings["Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                })
+                .AddGoogle(options =>
+                {
+                    var googleSection = builder.Configuration.GetSection("Authentication:Google");
+                    options.ClientId = googleSection["ClientId"] ?? string.Empty;
+                    options.ClientSecret = googleSection["ClientSecret"] ?? string.Empty;
+                    options.CallbackPath = "/signin-google";
+                    options.SaveTokens = true;
+                });
 
+            builder.Services.AddControllersWithViews()
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var errors = context.ModelState.Values
+                            .SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                            .ToList();
 
-            builder.Services.AddControllersWithViews();
+                        var response = ApiResponse<object>.Fail(
+                            "Validation failed.",
+                            StatusCodes.Status400BadRequest,
+                            errors);
+
+                        return new BadRequestObjectResult(response);
+                    };
+                });
+            builder.Services.AddSignalR();
 
             builder.Services.AddCors(options =>
             {
@@ -79,10 +138,45 @@ namespace GymManagementSystem.WebUI
                 });
             });
 
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("AdminFullAccess", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("TrainerOwnsResource", policy => policy.RequireRole("Trainer", "Admin"));
+                options.AddPolicy("MemberReadOnly", policy => policy.RequireRole("Member", "Admin"));
+                options.AddPolicy("SessionBookingAccess", policy =>
+                    policy.Requirements.Add(new SessionBookingAccessRequirement()));
+            });
+            builder.Services.AddScoped<IAuthorizationHandler, SessionBookingAccessHandler>();
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.AddPolicy("wallet-adjust", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetRateLimitKey(httpContext, "wallet-adjust"),
+                        factory: key => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = key.Contains(":Admin:", StringComparison.OrdinalIgnoreCase) ? 30 : 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+
+                options.AddPolicy("payment-review", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetRateLimitKey(httpContext, "payment-review"),
+                        factory: key => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = key.Contains(":Admin:", StringComparison.OrdinalIgnoreCase) ? 60 : 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+            });
+
             var app = builder.Build();
 
             DbSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
-
 
             if (!app.Environment.IsDevelopment())
             {
@@ -91,25 +185,45 @@ namespace GymManagementSystem.WebUI
             }
 
             app.UseSession();
-
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
+            app.UseMiddleware<CorrelationIdMiddleware>();
+            app.UseMiddleware<ApiExceptionHandlingMiddleware>();
+            app.UseMiddleware<PerformanceTimingMiddleware>();
+            app.UseSerilogRequestLogging(options =>
+            {
+                options.EnrichDiagnosticContext = (diagContext, httpContext) =>
+                {
+                    var userId = httpContext.User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "anonymous";
+                    var correlationId = httpContext.Items[CorrelationIdMiddleware.HeaderName]?.ToString();
+                    diagContext.Set("CorrelationId", correlationId ?? string.Empty);
+                    diagContext.Set("UserId", userId);
+                    diagContext.Set("Endpoint", httpContext.Request.Path);
+                    diagContext.Set("StatusCode", httpContext.Response.StatusCode);
+                };
+            });
             app.UseRouting();
-
             app.UseCors("AllowAll");
-
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
 
-            
-
+            app.MapControllers();
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
+            app.MapHub<ChatHub>("/hubs/chat");
+            app.MapHealthChecks("/health");
 
             app.Run();
+        }
+
+        private static string GetRateLimitKey(HttpContext context, string policyName)
+        {
+            var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+            var role = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "anonymous";
+            return $"{policyName}:{role}:{userId}";
         }
     }
 }

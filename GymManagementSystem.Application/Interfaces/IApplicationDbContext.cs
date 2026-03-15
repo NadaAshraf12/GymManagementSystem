@@ -1,4 +1,4 @@
-﻿using GymManagementSystem.Domain.Entities;
+using GymManagementSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementSystem.Application.Interfaces
@@ -13,6 +13,13 @@ namespace GymManagementSystem.Application.Interfaces
         // Other DbSets
         DbSet<Membership> Memberships { get; }
         DbSet<MembershipPlan> MembershipPlans { get; }
+        DbSet<Payment> Payments { get; }
+        DbSet<Branch> Branches { get; }
+        DbSet<Commission> Commissions { get; }
+        DbSet<Invoice> Invoices { get; }
+        DbSet<Notification> Notifications { get; }
+        DbSet<AddOn> AddOns { get; }
+        DbSet<WalletTransaction> WalletTransactions { get; }
         DbSet<WorkoutSession> WorkoutSessions { get; }
         DbSet<MemberSession> MemberSessions { get; }
         DbSet<TrainingPlan> TrainingPlans { get; }
@@ -22,6 +29,8 @@ namespace GymManagementSystem.Application.Interfaces
         DbSet<TrainerMemberAssignment> TrainerMemberAssignments { get; }
         DbSet<LoginAudit> LoginAudits { get; }
         DbSet<RefreshToken> RefreshTokens { get; }
+        DbSet<ChatMessage> ChatMessages { get; }
+        DbSet<AuditLog> AuditLogs { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
