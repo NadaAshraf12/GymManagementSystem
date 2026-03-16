@@ -1,57 +1,37 @@
-name: 'Deploy ASP.NET Core to MonsterASP'
+name: Deploy ASP.NET Core to MonsterASP
 
 on:
   push:
     branches:
-      - 'master'
+      - master
 
 jobs:
   build-and-deploy:
-    runs-on: 'ubuntu-latest'
+    runs-on: ubuntu-latest
     
     steps:
-      - name: 'Checkout repository'
-        uses: 'actions/checkout@v4'
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: 'Setup .NET'
-        uses: 'actions/setup-dotnet@v4'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
-      - name: 'Restore dependencies'
-        run: 'dotnet restore'
+      - name: Restore dependencies
+        run: dotnet restore
 
-      - name: 'Publish project'
+      - name: Publish project
         run: |
           PROJECT_PATH=$(find . -name "GymManagementSystem.WebUI.csproj" | head -n 1)
           echo "Found project at: $PROJECT_PATH"
           dotnet publish "$PROJECT_PATH" -c Release -o publish -p:UseAppHost=false
 
-      - name: 'Put site offline'
-        run: |
-          SERVER=$(echo "${{ secrets.FTP_SERVER }}" | tr -d '\r\n ' | sed 's/ftp:\/\///g')
-          USER=$(echo "${{ secrets.FTP_USERNAME }}" | tr -d '\r\n ')
-          PASS=$(echo "${{ secrets.FTP_PASSWORD }}" | tr -d '\r\n ')
-
-          echo "<html><body><h1>Site is updating, please wait a minute...</h1></body></html>" > app_offline.htm
-          curl -T app_offline.htm "ftp://$SERVER/wwwroot/app_offline.htm" --user "$USER:$PASS"
-          sleep 5
-
-      - name: 'Deploy to FTP'
-        uses: 'SamKirkland/FTP-Deploy-Action@v4.3.4'
+      - name: Deploy to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: '${{ secrets.FTP_SERVER }}'
-          username: '${{ secrets.FTP_USERNAME }}'
-          password: '${{ secrets.FTP_PASSWORD }}'
-          local-dir: './publish/'
-          server-dir: '/wwwroot/'
-
-      - name: 'Bring site back online'
-        if: always()
-        continue-on-error: true
-        run: |
-          SERVER=$(echo "${{ secrets.FTP_SERVER }}" | tr -d '\r\n ' | sed 's/ftp:\/\///g')
-          USER=$(echo "${{ secrets.FTP_USERNAME }}" | tr -d '\r\n ')
-          PASS=$(echo "${{ secrets.FTP_PASSWORD }}" | tr -d '\r\n ')
-
-          curl -Q "DELE wwwroot/app_offline.htm" "ftp://$SERVER/" --user "$USER:$PASS"
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./publish/
+          server-dir: /wwwroot/
