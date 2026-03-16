@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -25,8 +25,9 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-            - name: Restore dependencies
-              run: dotnet restore
+
+      - name: Restore dependencies
+        run: dotnet restore
 
       - name: Build project
         run: dotnet build --configuration Release --no-restore
@@ -59,7 +60,10 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./publish/
           server-dir: /wwwroot/
-          dangerous-clean-slate: true
 
       - name: Remove maintenance file
-        run: rm app_offline.htm
+        if: always()
+        continue-on-error: true
+        run: |
+          SERVER=$(echo "${{ secrets.FTP_SERVER }}" | tr -d '\r\n ' | sed 's/ftp:\/\///g')
+          curl -Q "DELE wwwroot/app_offline.htm" "ftp://$SERVER/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
