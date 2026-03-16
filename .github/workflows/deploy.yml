@@ -30,7 +30,21 @@ jobs:
           echo "Found project at: $PROJECT_PATH"
           dotnet publish "$PROJECT_PATH" -c Release -o publish -p:UseAppHost=false
 
-      - name: Deploy to FTP
+      - name: Create maintenance file
+        run: echo "<html><body><h1>Updating website...</h1></body></html>" > app_offline.htm
+
+      - name: Upload maintenance file
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: /wwwroot/
+          include: |
+            app_offline.htm
+
+      - name: Deploy website
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -39,3 +53,6 @@ jobs:
           local-dir: ./publish/
           server-dir: /wwwroot/
           dangerous-clean-slate: true
+
+      - name: Remove maintenance file
+        run: rm app_offline.htm
